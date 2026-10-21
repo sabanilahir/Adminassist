@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String     @id @default(cuid())
+  name             String
+  email            String     @unique
+  password         String?
+  role             Role       @default(USER)
+  createdAt        DateTime   @default(now())
+  comments         Comment[]
+  managedContracts Contract[] @relation("ContractPM")
+  assigned         Ticket[]   @relation("AssignedPIC")
+  confirmedTickets Ticket[]   @relation("ConfirmedBy")
+  tickets          Ticket[]   @relation("UserTickets")
+  picContracts     Contract[] @relation("ContractPICs")
+}
+
+model Customer {
+  id           String     @id @default(cuid())
+  customerCode String     @unique
+  name         String
+  email        String     @unique
+  phone        String?
+  company      String?
+  address      String?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  contracts    Contract[]
+  tickets      Ticket[]
+}
+
+model Contract {
+  id                String    @id @default(cuid())
+  customerId        String
+  contractNumber    String?
+  correctiveMandays Float     @default(0)
+  usedCorrective    Float     @default(0)
+  preventiveMandays Float     @default(0)
+  usedPreventive    Float     @default(0)
+  projectManagerId  String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  contactEmail      String?
+  contactName       String?
+  contactPhone      String?
+  endDate           DateTime?
+  startDate         DateTime?
+  documentUrls      String[]  @default([])
+  customer          Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  projectManager    User?     @relation("ContractPM", fields: [projectManagerId], references: [id])
+  tickets           Ticket[]
+  pics              User[]    @relation("ContractPICs")
+}
+
+model Category {
+  id      String   @id @default(cuid())
+  name    String
+  tickets Ticket[]
+}
+
+model Ticket {
+  id              String    @id @default(cuid())
+  trackingId      String    @unique
+  title           String
+  description     String
+  status          Status    @default(NEW)
+  priority        Priority  @default(MEDIUM)
+  userId          String
+  contractId      String?
+  categoryId      String?
+  customerId      String?
+  assignedToId    String?
+  rootCause       String?
+  resolution      String?
+  reference       String?
+  mandaysSpent    Float     @default(0)
+  mandaysType     String?
+  confirmedAt     DateTime?
+  confirmedById   String?
+  resolvedAt      DateTime?
+  autoCloseAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  mandaysCategory String?
+  comments        Comment[]
+  assignedTo      User?     @relation("AssignedPIC", fields: [assignedToId], references: [id])
+  category        Category? @relation(fields: [categoryId], references: [id])
+  confirmedBy     User?     @relation("ConfirmedBy", fields: [confirmedById], references: [id])
+  contract        Contract? @relation(fields: [contractId], references: [id])
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  user            User      @relation("UserTickets", fields: [userId], references: [id])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  content    String
+  isInternal Boolean  @default(false)
+  ticketId   String
+  userId     String
+  createdAt  DateTime @default(now())
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  USER
+  PIC
+  PROJECT_MANAGER
+  ADMIN
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum Status {
+  NEW
+  IN_PROGRESS
+  WAITING_REPLY
+  REPLIED
+  ON_HOLD
+  NOT_APPLICABLE
+  RESOLVED
+  CONFIRMED
+  CLOSED
+  OPEN
+  REJECTED
+}
