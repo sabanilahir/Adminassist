@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -183,18 +183,18 @@ export default function LoginPage() {
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div className="bg-muted/50 rounded p-2 text-center">
                 <p className="font-medium text-foreground">Admin</p>
-                <p className="text-muted-foreground">admin@helpdesk.com</p>
+                <p className="text-muted-foreground truncate" title="admin@helpdesk.com">admin@helpdesk.com</p>
                 <p className="text-muted-foreground">admin123</p>
               </div>
               <div className="bg-muted/50 rounded p-2 text-center">
-                <p className="font-medium text-foreground">PM</p>
-                <p className="text-muted-foreground">pm@helpdesk.com</p>
-                <p className="text-muted-foreground">pm1234</p>
+                <p className="font-medium text-foreground">Project Manager</p>
+                <p className="text-muted-foreground truncate" title="pm1@suzuki.co.id">pm1@suzuki.co.id</p>
+                <p className="text-muted-foreground">pm123</p>
               </div>
               <div className="bg-muted/50 rounded p-2 text-center">
-                <p className="font-medium text-foreground">PIC/Technical</p>
-                <p className="text-muted-foreground">technical@email.com</p>
-                <p className="text-muted-foreground">tc1234</p>
+                <p className="font-medium text-foreground">PIC / Teknisi</p>
+                <p className="text-muted-foreground truncate" title="user1@suzuki.co.id">user1@suzuki.co.id</p>
+                <p className="text-muted-foreground">pic123</p>
               </div>
             </div>
           </div>

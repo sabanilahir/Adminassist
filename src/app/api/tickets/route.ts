@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { notifyNewTicket } from "@/lib/ticket-notifications";
 
 export async function POST(request: Request) {
   try {
@@ -8,22 +9,26 @@ export async function POST(request: Request) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const { title, description, priority, customerId, categoryId } = body;
+    const { title, description, priority, customerId, categoryId, contractId } = body;
 
     if (!title || !customerId) {
       return NextResponse.json({ error: "Title dan Customer wajib diisi" }, { status: 400 });
     }
 
-    // 1. CARI KONTRAK AKTIF SECARA OTOMATIS BERDASARKAN CUSTOMER ID
-    const activeContract = await prisma.contract.findFirst({
-      where: { customerId: customerId },
-      orderBy: { createdAt: "desc" }, // Ambil kontrak terbaru/aktif
-    });
+    // 1. Gunakan contractId dari form jika ada, jika tidak cari kontrak aktif
+    let resolvedContractId: string | null = contractId || null;
+    if (!resolvedContractId) {
+      const activeContract = await prisma.contract.findFirst({
+        where: { customerId },
+        orderBy: { createdAt: "desc" },
+      });
+      resolvedContractId = activeContract?.id ?? null;
+    }
 
     // 2. Buat tracking ID unik
     const trackingId = "TKT-" + Math.floor(100000 + Math.random() * 900000);
 
-    // 3. Simpan tiket dengan contractId yang ditemukan
+    // 3. Simpan tiket
     const newTicket = await prisma.ticket.create({
       data: {
         title,
@@ -34,17 +39,20 @@ export async function POST(request: Request) {
         customerId,
         categoryId: categoryId || null,
         userId: session.user.id,
-        // Masukkan ID kontrak jika ada, jika tidak biarkan null
-        contractId: activeContract ? activeContract.id : null, 
+        contractId: resolvedContractId,
       },
     });
+
+    // 4. Kirim notifikasi email ke PM & PIC (fire-and-forget)
+    notifyNewTicket(newTicket.id).catch((err) =>
+      console.error("[API /tickets POST] notifyNewTicket error:", err)
+    );
 
     return NextResponse.json(newTicket, { status: 201 });
   } catch (error) {
     console.error("Error creating ticket:", error);
     return NextResponse.json({ error: "Gagal membuat tiket" }, { status: 500 });
   }
-
 }
 
 export async function GET(request: Request) {

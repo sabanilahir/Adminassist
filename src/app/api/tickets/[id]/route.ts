@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { notifyPicClaimed, notifyStatusChanged, notifyPicAssigned } from "@/lib/ticket-notifications";
 
 export async function GET(
   request: Request,
@@ -118,6 +119,35 @@ export async function PATCH(
       where: { id }, 
       data: updateData 
     });
+
+    // -----------------------------------------------------------------------
+    // Email notifications (fire-and-forget, non-blocking)
+    // -----------------------------------------------------------------------
+
+    // Event 2: PIC klaim tiket (assignedToId baru diisi & status jadi IN_PROGRESS)
+    const isPicClaim =
+      body.assignedToId &&
+      !existingTicket.assignedToId &&
+      session.user.role === "PIC";
+
+    if (isPicClaim) {
+      notifyPicClaimed(id, session.user.name ?? "", session.user.email ?? "").catch(console.error);
+    }
+
+    // Event 3: Status tiket berubah → notify PM
+    if (body.status && body.status !== existingTicket.status) {
+      notifyStatusChanged(id, existingTicket.status, body.status).catch(console.error);
+    }
+
+    // Event 4: PM assign PIC ke tiket → notify PIC yang di-assign
+    const isPmAssigning =
+      body.assignedToId &&
+      body.assignedToId !== existingTicket.assignedToId &&
+      session.user.role === "PROJECT_MANAGER";
+
+    if (isPmAssigning) {
+      notifyPicAssigned(id, body.assignedToId).catch(console.error);
+    }
 
     // 2. Akumulasi mandays ke Contract jika berstatus RESOLVED dan terikat kontrak
     if (targetStatus === "RESOLVED" && ticket.contractId) {

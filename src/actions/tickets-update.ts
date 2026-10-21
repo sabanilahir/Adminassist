@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { Status } from "@prisma/client";
+import { notifyPicClaimed, notifyStatusChanged, notifyPicAssigned } from "@/lib/ticket-notifications";
 
 export async function updateTicket(id: string, data: any) {
   const session = await auth();
@@ -36,11 +37,21 @@ export async function updateTicket(id: string, data: any) {
   }
 
   await prisma.ticket.update({ where: { id }, data: payload });
-  
+
+  // Notifikasi: status berubah → PM
+  if (data.status && data.status !== existingTicket.status) {
+    notifyStatusChanged(id, existingTicket.status, data.status).catch(console.error);
+  }
+
+  // Notifikasi: PM assign PIC baru
+  if (data.assignedToId && data.assignedToId !== existingTicket.assignedToId && session.user.role === "PROJECT_MANAGER") {
+    notifyPicAssigned(id, data.assignedToId).catch(console.error);
+  }
+
   revalidatePath("/tickets/" + id);
   revalidatePath("/tickets");
   revalidatePath("/inbox");
-  
+
   return { success: true };
 }
 
@@ -60,6 +71,9 @@ export async function claimTicket(ticketId: string) {
       status: Status.IN_PROGRESS 
     } 
   });
+
+  // Notifikasi: PIC klaim tiket → PM
+  notifyPicClaimed(ticketId, session.user.name ?? "", session.user.email ?? "").catch(console.error);
   
   revalidatePath("/tickets/" + ticketId);
   revalidatePath("/tickets");

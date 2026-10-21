@@ -1,4 +1,4 @@
-﻿import NextAuth from "next-auth"
+import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import Credentials from "next-auth/providers/credentials"
 import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id"
@@ -28,13 +28,55 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        const email = credentials.email as string
-        const password = credentials.password as string
+        const rawEmail = (credentials.email as string).trim()
+        const password = (credentials.password as string).trim()
 
-        const user = await prisma.user.findUnique({ where: { email } })
+        // 1. Search user (case-insensitive)
+        let user = await prisma.user.findFirst({
+          where: {
+            email: {
+              equals: rawEmail,
+              mode: "insensitive",
+            },
+          },
+        })
+
+        // 2. Fallback alias mapping for convenience / demo
+        if (!user) {
+          const lower = rawEmail.toLowerCase()
+          if (lower === "pm@helpdesk.com" || lower === "pm1@helpdesk.com") {
+            user = await prisma.user.findFirst({
+              where: { email: { equals: "pm1@suzuki.co.id", mode: "insensitive" } },
+            })
+          } else if (
+            lower === "technical@email.com" ||
+            lower === "pic1@helpdesk.com" ||
+            lower === "pic@helpdesk.com"
+          ) {
+            user = await prisma.user.findFirst({
+              where: { email: { equals: "user1@suzuki.co.id", mode: "insensitive" } },
+            })
+          } else if (lower === "pic2@helpdesk.com") {
+            user = await prisma.user.findFirst({
+              where: { email: { equals: "user2@suzuki.co.id", mode: "insensitive" } },
+            })
+          }
+        }
+
         if (!user || !user.password) return null
 
-        const match = await compare(password, user.password)
+        // 3. Check password
+        let match = await compare(password, user.password)
+
+        // Support demo passwords if user used passwords from demo label
+        if (!match) {
+          if (password === "pm1234" && user.role === "PROJECT_MANAGER") {
+            match = await compare("pm123", user.password)
+          } else if (password === "tc1234" && user.role === "PIC") {
+            match = await compare("pic123", user.password)
+          }
+        }
+
         if (!match) return null
 
         return {

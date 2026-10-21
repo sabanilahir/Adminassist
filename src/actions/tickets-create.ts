@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { generateTrackingId } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
+import { notifyNewTicket } from "@/lib/ticket-notifications";
 
 export async function createTicket(formData: FormData) {
   const session = await auth();
@@ -65,5 +66,9 @@ export async function createTicket(formData: FormData) {
 
   revalidatePath("/tickets");
   revalidatePath("/");
+
+  // Send email notifications to PM and PICs (fire-and-forget)
+  notifyNewTicket(ticket.id).catch(console.error);
+
   return { success: true, ticket };
 }

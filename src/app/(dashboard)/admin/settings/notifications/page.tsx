@@ -34,6 +34,7 @@ export default function NotificationSettingsPage() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testEmailTo, setTestEmailTo] = useState("");
   const [emailConfig, setEmailConfig] = useState<EmailConfig>({
     smtpHost: "smtp.gmail.com",
     smtpPort: 587,
@@ -276,19 +277,105 @@ export default function NotificationSettingsPage() {
                   />
                 </div>
 
-                <Button type="submit" disabled={saving}>
-                  {saving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Email Config
-                    </>
-                  )}
-                </Button>
+                {/* Save Config */}
+                <div className="flex flex-col gap-4 pt-2">
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={saving}>
+                      {saving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Save Email Config
+                        </>
+                      )}
+                    </Button>
+
+                    {/* Test SMTP Connection */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={saving}
+                      onClick={async () => {
+                        setSaving(true);
+                        try {
+                          const res = await fetch("/api/settings/email/test", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ type: "connection" }),
+                          });
+                          const data = await res.json();
+                          toast({
+                            title: data.success ? "SMTP Connection OK" : "SMTP Connection Failed",
+                            description: data.error || "Connection verified successfully.",
+                            variant: data.success ? undefined : "destructive",
+                          });
+                        } catch (e) {
+                          toast({ title: "Error", description: String(e), variant: "destructive" });
+                        } finally {
+                          setSaving(false);
+                        }
+                      }}
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Testing...
+                        </>
+                      ) : (
+                        "Test Connection"
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Test Send Email */}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="email"
+                      placeholder="Recipient email for test send"
+                      value={testEmailTo}
+                      onChange={(e) => setTestEmailTo(e.target.value)}
+                      className="max-w-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={saving}
+                      onClick={async () => {
+                        setSaving(true);
+                        try {
+                          const res = await fetch("/api/settings/email/test", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ type: "send", to: testEmailTo }),
+                          });
+                          const data = await res.json();
+                          toast({
+                            title: data.success ? "Test Email Sent" : "Test Email Failed",
+                            description: data.error || "Check the recipient inbox.",
+                            variant: data.success ? undefined : "destructive",
+                          });
+                        } catch (e) {
+                          toast({ title: "Error", description: String(e), variant: "destructive" });
+                        } finally {
+                          setSaving(false);
+                        }
+                      }}
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Send Test Email"
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </form>
             </CardContent>
           </Card>

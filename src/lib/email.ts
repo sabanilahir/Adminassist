@@ -1,4 +1,4 @@
-﻿import nodemailer from "nodemailer"
+import nodemailer from "nodemailer"
 import { prisma } from "@/lib/prisma"
 
 interface TicketEmailData {
@@ -20,7 +20,45 @@ interface TicketEmailData {
 }
 
 async function getEmailConfig() {
+  // Retrieve the first (and only) email configuration from the database.
+  // This helper is used by all email-related utilities.
   return await prisma.emailConfig.findFirst()
+}
+
+/**
+ * Verify SMTP connection using the current configuration.
+ * Returns an object indicating success and any error message.
+ */
+export async function testSmtpConnection() {
+  const config = await getEmailConfig()
+  if (!config || !config.isEnabled) {
+    return { success: false, error: 'Email not configured or disabled' }
+  }
+  try {
+    const transporter = nodemailer.createTransport({
+      host: config.smtpHost,
+      port: config.smtpPort,
+      secure: config.smtpPort === 465,
+      auth: {
+        user: config.smtpUser,
+        pass: config.smtpPass,
+      },
+    })
+    await transporter.verify()
+    return { success: true }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+/**
+ * Send a test email to the specified address.
+ * Uses a simple subject/body if none are provided.
+ */
+export async function sendTestEmail(to: string, subject?: string, body?: string) {
+  const defaultSubject = 'Test email from Helpdesk System'
+  const defaultBody = '<p>This is a test email to verify SMTP configuration.</p>'
+  return await sendEmail(to, subject ?? defaultSubject, body ?? defaultBody)
 }
 
 async function getTemplate(type: string) {
