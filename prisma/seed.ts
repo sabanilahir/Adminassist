@@ -10,6 +10,7 @@ async function main() {
   const picPass = await bcrypt.hash("pic123", 10);
   const pmPass = await bcrypt.hash("pm123", 10);
   const userPass = await bcrypt.hash("user123", 10);
+  const adminTicketPass = await bcrypt.hash("adminticket123", 10);
 
   // 1. Users
   const admin = await prisma.user.upsert({ 
@@ -40,6 +41,12 @@ async function main() {
     where: { email: "user1@email.com" }, 
     update: {}, 
     create: { name: "User Test 1", email: "user1@email.com", password: userPass, role: Role.USER } 
+  });
+
+  const adminTicket = await prisma.user.upsert({ 
+    where: { email: "adminticket@helpdesk.com" }, 
+    update: {}, 
+    create: { name: "Admin Ticket", email: "adminticket@helpdesk.com", password: adminTicketPass, role: Role.ADMIN_TICKET } 
   });
 
   console.log("Users created");
@@ -117,6 +124,12 @@ async function main() {
     where: { id: "cat-feature" }, 
     update: {}, 
     create: { id: "cat-feature", name: "Feature Request" } 
+  });
+
+  await prisma.category.upsert({ 
+    where: { id: "cat-others" }, 
+    update: {}, 
+    create: { id: "cat-others", name: "Others" } 
   });
 
   console.log("Categories created");

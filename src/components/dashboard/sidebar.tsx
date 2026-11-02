@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,8 +30,8 @@ export function Sidebar() {
   const role = session?.user?.role;
 
   const menuItems = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["USER", "PIC", "PROJECT_MANAGER", "ADMIN"] },
-    { href: "/tickets", label: "Tickets", icon: Ticket, roles: ["ADMIN"] },
+    { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["USER", "PIC", "PROJECT_MANAGER", "ADMIN", "ADMIN_TICKET"] },
+    { href: "/tickets", label: "Tickets", icon: Ticket, roles: ["ADMIN", "ADMIN_TICKET"] },
     { href: "/inbox", label: "Inbox", icon: Inbox, roles: ["PIC", "PROJECT_MANAGER"] },
     { href: "/reports", label: "Reports", icon: FileText, roles: ["ADMIN", "PROJECT_MANAGER"] },
     { href: "/admin/users", label: "Users", icon: Users, roles: ["ADMIN"] },

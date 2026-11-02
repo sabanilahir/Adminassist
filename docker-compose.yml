@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: adminassist-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Password.123
+      POSTGRES_DB: ticket_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Mailpit: Local SMTP server & Web UI for testing email notifications
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: adminassist-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web UI (http://localhost:8025)
+
+volumes:
+  postgres_data:
+    driver: local

@@ -59,6 +59,8 @@ export async function PATCH(
     const updateData: any = {};
     if (body.status) updateData.status = body.status;
     if (body.priority) updateData.priority = body.priority;
+    if (body.reportedAt !== undefined) updateData.reportedAt = body.reportedAt ? new Date(body.reportedAt) : null;
+    if (body.reporterName !== undefined) updateData.reporterName = body.reporterName;
     
     // Perbaikan relasi Category menggunakan connect/disconnect
     if (body.categoryId !== undefined) {

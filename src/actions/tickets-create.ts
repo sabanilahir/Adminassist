@@ -16,6 +16,8 @@ export async function createTicket(formData: FormData) {
   const categoryId = formData.get("categoryId") as string;
   const customerId = formData.get("customerId") as string;
   const contractId = formData.get("contractId") as string;
+  const reporterName = formData.get("reporterName") as string;
+  const reportedAt = formData.get("reportedAt") as string;
 
   if (!title || !description || !customerId) return { error: "Required" };
 
@@ -54,11 +56,13 @@ export async function createTicket(formData: FormData) {
       trackingId, 
       title, 
       description, 
-      priority: priority || "MEDIUM", 
+      priority: (priority as any) || "MEDIUM", 
       userId: session.user.id, 
       categoryId: categoryId || null, 
       customerId, 
       contractId: contractId || null,
+      reportedAt: reportedAt ? new Date(reportedAt) : new Date(),
+      reporterName: reporterName || null,
       status: "NEW", // Status tetap NEW
       assignedToId: assignedToId // Ter-assign ke PM jika Feature Request
     } 

@@ -87,6 +87,8 @@ model Ticket {
   confirmedById   String?
   resolvedAt      DateTime?
   autoCloseAt     DateTime?
+  reportedAt      DateTime? @default(now())
+  reporterName    String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   mandaysCategory String?
@@ -146,6 +148,7 @@ enum Role {
   PIC
   PROJECT_MANAGER
   ADMIN
+  ADMIN_TICKET
 }
 
 enum Priority {

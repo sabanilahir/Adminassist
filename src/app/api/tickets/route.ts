@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const { title, description, priority, customerId, categoryId, contractId } = body;
+    const { title, description, priority, customerId, categoryId, contractId, reportedAt, reporterName } = body;
 
     if (!title || !customerId) {
       return NextResponse.json({ error: "Title dan Customer wajib diisi" }, { status: 400 });
@@ -40,6 +40,8 @@ export async function POST(request: Request) {
         categoryId: categoryId || null,
         userId: session.user.id,
         contractId: resolvedContractId,
+        reportedAt: reportedAt ? new Date(reportedAt) : new Date(),
+        reporterName: reporterName || null,
       },
     });
 

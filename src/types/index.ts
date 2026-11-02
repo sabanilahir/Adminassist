@@ -21,6 +21,8 @@ export interface TicketWithRelations {
   categoryId: string | null;
   createdAt: Date;
   updatedAt: Date;
+  reportedAt?: Date | null;
+  reporterName?: string | null;
   user: {
     id: string;
     name: string;
@@ -93,4 +95,6 @@ export interface Customer {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  reportedAt?: Date | null;
+  reporterName?: string | null;
 }

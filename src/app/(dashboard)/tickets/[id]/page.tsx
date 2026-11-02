@@ -69,6 +69,8 @@ export default function TicketDetailPage({
   const [mandaysSpent, setMandaysSpent] = useState("");
   const [mandaysType, setMandaysType] = useState("HOURS");
   const [mandaysCategory, setMandaysCategory] = useState("CORRECTIVE");
+  const [reportedAt, setReportedAt] = useState("");
+  const [reporterName, setReporterName] = useState("");
 
   useEffect(() => {
     fetchTicket();
@@ -93,6 +95,8 @@ export default function TicketDetailPage({
         setMandaysSpent(data.mandaysSpent ? data.mandaysSpent.toString() : "");
         setMandaysType(data.mandaysType || "HOURS");
         setMandaysCategory(data.mandaysCategory || "CORRECTIVE");
+        setReportedAt(data.reportedAt ? new Date(data.reportedAt).toISOString().split("T")[0] : "");
+        setReporterName(data.reporterName || "");
       }
     } catch (error) {
       console.error("Gagal memuat detail tiket", error);
@@ -203,6 +207,8 @@ export default function TicketDetailPage({
           mandaysSpent: mandaysSpent ? Number(mandaysSpent) : 0,
           mandaysType,
           mandaysCategory,
+          reportedAt: reportedAt ? new Date(reportedAt).toISOString() : null,
+          reporterName: reporterName.trim() || null,
         }),
       });
 
@@ -513,6 +519,25 @@ export default function TicketDetailPage({
         {isEditing && (
           <div className="space-y-4 bg-muted/40 p-4 rounded-lg border">
             <h3 className="font-semibold text-sm">Form Update Tiket</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-3 border-b">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Tanggal Pelaporan</Label>
+                <Input
+                  type="date"
+                  value={reportedAt}
+                  onChange={(e) => setReportedAt(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Nama Pelapor</Label>
+                <Input
+                  placeholder="Nama staf/kontak pelapor..."
+                  value={reporterName}
+                  onChange={(e) => setReporterName(e.target.value)}
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Status</Label>

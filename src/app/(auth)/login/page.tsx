@@ -73,7 +73,7 @@ export default function LoginPage() {
             <h1 className="text-2xl font-bold text-foreground mb-2">
               Astragraphia Solution Support System Ticketing 
             </h1>
-           <h1 className="text-2xl font-bold text-foreground mb-2">(ASSIST)</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-2">(ASSIST)</h1>
             <p className="text-muted-foreground text-sm">
               Sign in to your account
             </p>
@@ -180,20 +180,25 @@ export default function LoginPage() {
             <p className="text-xs text-muted-foreground text-center mb-4">
               Demo Credentials
             </p>
-            <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="bg-muted/50 rounded p-2 text-center">
                 <p className="font-medium text-foreground">Admin</p>
                 <p className="text-muted-foreground truncate" title="admin@helpdesk.com">admin@helpdesk.com</p>
                 <p className="text-muted-foreground">admin123</p>
               </div>
               <div className="bg-muted/50 rounded p-2 text-center">
+                <p className="font-medium text-foreground">Admin Ticket</p>
+                <p className="text-muted-foreground truncate" title="adminticket@helpdesk.com">adminticket@helpdesk.com</p>
+                <p className="text-muted-foreground">adminticket123</p>
+              </div>
+              <div className="bg-muted/50 rounded p-2 text-center">
                 <p className="font-medium text-foreground">Project Manager</p>
-                <p className="text-muted-foreground truncate" title="pm1@suzuki.co.id">pm1@suzuki.co.id</p>
+                <p className="text-muted-foreground truncate" title="pm1@helpdesk.com">pm1@helpdesk.com</p>
                 <p className="text-muted-foreground">pm123</p>
               </div>
               <div className="bg-muted/50 rounded p-2 text-center">
                 <p className="font-medium text-foreground">PIC / Teknisi</p>
-                <p className="text-muted-foreground truncate" title="user1@suzuki.co.id">user1@suzuki.co.id</p>
+                <p className="text-muted-foreground truncate" title="pic1@helpdesk.com">pic1@helpdesk.com</p>
                 <p className="text-muted-foreground">pic123</p>
               </div>
             </div>

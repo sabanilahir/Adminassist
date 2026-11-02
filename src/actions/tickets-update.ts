@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { Status } from "@prisma/client";
-import { notifyPicClaimed, notifyStatusChanged, notifyPicAssigned } from "@/lib/ticket-notifications";
+import { notifyPicClaimed, notifyStatusChanged, notifyPicAssigned, notifyTicketRejected, notifyTicketNotApplicable } from "@/lib/ticket-notifications";
 
 export async function updateTicket(id: string, data: any) {
   const session = await auth();
@@ -19,6 +19,10 @@ export async function updateTicket(id: string, data: any) {
 
   // Siapkan payload update
   const payload: any = { ...data };
+
+  if (payload.reportedAt) {
+    payload.reportedAt = new Date(payload.reportedAt);
+  }
 
   // Konversi String Status ke Enum Prisma jika ada passing status
   if (data.status && typeof data.status === "string") {
@@ -98,7 +102,7 @@ export async function deleteTicket(id: string) {
 export async function markTicketNotApplicable(ticketId: string, reason: string) {
   const session = await auth();
   
-  if (session?.user?.role !== "PROJECT_MANAGER") {
+  if (session?.user?.role !== "PROJECT_MANAGER" && session?.user?.role !== "ADMIN") {
     throw new Error("Unauthorized: Only Project Managers can perform this action");
   }
 
@@ -121,7 +125,12 @@ export async function markTicketNotApplicable(ticketId: string, reason: string) 
       }),
     ]);
 
+    // Kirim notifikasi email ke Customer beserta alasannya
+    notifyTicketNotApplicable(ticketId, reason, session.user.name ?? "Project Manager").catch(console.error);
+
     revalidatePath(`/tickets/${ticketId}`);
+    revalidatePath("/tickets");
+    revalidatePath("/inbox");
     return { success: true };
   } catch (error) {
     console.error("Failed to mark as not applicable:", error);
@@ -161,6 +170,9 @@ export async function rejectTicket(
       },
     });
 
+    // Notifikasi email ke Customer & PM berisi alasan reject
+    notifyTicketRejected(ticketId, reason, session.user.name ?? "Technical Team").catch(console.error);
+
     revalidatePath(`/tickets/${ticketId}`);
     revalidatePath("/tickets");
     revalidatePath("/inbox");
@@ -180,7 +192,7 @@ export async function resubmitTicket(
 ) {
   try {
     const session = await auth();
-    if (!session || session.user.role !== "ADMIN") {
+    if (!session || (session.user.role !== "ADMIN" && session.user.role !== "ADMIN_TICKET")) {
       return { error: "Hanya Admin yang dapat merevisi dan mengirim ulang tiket." };
     }
 
@@ -206,6 +218,8 @@ export async function resubmitTicket(
         userId: session.user.id,
       },
     });
+
+
 
     revalidatePath(`/tickets/${ticketId}`);
     revalidatePath("/tickets");

@@ -166,7 +166,9 @@ try {
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-mono text-muted-foreground">{ticket.trackingId}</span>
                     <Badge variant={getStatusBadge(ticket.status)}>{ticket.status.replace("_", " ")}</Badge>
-                    <Badge variant={getPriorityBadge(ticket.priority)}>{ticket.priority}</Badge>
+                    {userRole !== "ADMIN_TICKET" && userRole !== "USER" && (
+                      <Badge variant={getPriorityBadge(ticket.priority)}>{ticket.priority}</Badge>
+                    )}
                   </div>
                   <h3 className="font-medium mt-1 truncate">{ticket.title}</h3>
                   <p className="text-sm text-muted-foreground mt-1">{ticket.category?.name || "Uncategorized"} • {formatDate(ticket.createdAt)}</p>

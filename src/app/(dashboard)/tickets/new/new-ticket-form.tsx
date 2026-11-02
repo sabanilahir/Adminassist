@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { ArrowLeft, Loader2, UserCircle, Check, ChevronsUpDown, FileText } from "lucide-react";
+import { ArrowLeft, Loader2, UserCircle, Check, ChevronsUpDown, FileText, Calendar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function NewTicketForm({ categories }: { categories: any[] }) {
@@ -26,9 +26,13 @@ export function NewTicketForm({ categories }: { categories: any[] }) {
   const [contract, setContract] = useState("");
   const [autoPm, setAutoPm] = useState<{ id: string; name: string } | null>(null);
   const [category, setCategory] = useState("");
+  const [otherDescription, setOtherDescription] = useState("");
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
-  const [priority, setPriority] = useState("MEDIUM");
+  
+  // Tanggal Pelaporan (Default hari ini) & Nama Pelapor (Default contactName kontrak)
+  const [reportedAt, setReportedAt] = useState(() => new Date().toISOString().split("T")[0]);
+  const [reporterName, setReporterName] = useState("");
   
   // UI State
   const [openCust, setOpenCust] = useState(false);
@@ -38,6 +42,21 @@ export function NewTicketForm({ categories }: { categories: any[] }) {
   // New Customer State
   const [newC, setNewC] = useState({ name: "", email: "", phone: "", company: "" });
   const [creating, setCreating] = useState(false);
+
+  // Pastikan kategori "Others" selalu ada dalam daftar pilihan
+  const categoryList = useMemo(() => {
+    const list = Array.isArray(categories) ? [...categories] : [];
+    const hasOthers = list.some(c => c.name?.toLowerCase() === "others");
+    if (!hasOthers) {
+      list.push({ id: "cat-others", name: "Others" });
+    }
+    return list;
+  }, [categories]);
+
+  const isOthersCategory = useMemo(() => {
+    const catObj = categoryList.find(c => c.id === category);
+    return catObj?.name?.toLowerCase() === "others";
+  }, [category, categoryList]);
 
   useEffect(() => { 
     fetch("/api/customers")
@@ -50,6 +69,7 @@ export function NewTicketForm({ categories }: { categories: any[] }) {
     setCust(id); 
     setContract(""); 
     setAutoPm(null);
+    setReporterName("");
     const selectedCustomer = customers.find(x => x.id === id); 
     setAvailableContracts(selectedCustomer?.contracts || []); 
   }
@@ -58,6 +78,10 @@ export function NewTicketForm({ categories }: { categories: any[] }) {
     setContract(id);
     const selectedContract = availableContracts.find(c => c.id === id);
     setAutoPm(selectedContract?.projectManager || null);
+    // Jadikan default adalah nama contact person dari customer berdasarkan kontrak
+    if (selectedContract?.contactName) {
+      setReporterName(selectedContract.contactName);
+    }
   }
 
   async function createC(e: React.FormEvent) {
@@ -77,16 +101,26 @@ export function NewTicketForm({ categories }: { categories: any[] }) {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title || !desc || !cust || !contract) return;
+    if (isOthersCategory && !otherDescription.trim()) {
+      alert("Harap isi deskripsi khusus untuk kategori Others.");
+      return;
+    }
     setLoading(true);
     try {
+      const finalDescription = isOthersCategory && otherDescription.trim()
+        ? `${desc}\n\n[Kategori Lainnya / Others]:\n${otherDescription.trim()}`
+        : desc;
+
       const payload = { 
         title, 
-        description: desc, 
+        description: finalDescription, 
         customerId: cust, 
         contractId: contract,
         agentId: autoPm?.id || undefined, // Set PM sebagai technical assign
         categoryId: category || undefined, 
-        priority 
+        priority: "MEDIUM", // Priority otomatis diset default MEDIUM tanpa ditampilkan di form
+        reporterName: reporterName.trim() || undefined,
+        reportedAt: reportedAt ? new Date(reportedAt).toISOString() : new Date().toISOString()
       };
       
       const r = await fetch("/api/tickets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -173,19 +207,68 @@ export function NewTicketForm({ categories }: { categories: any[] }) {
           )}
         </div>
 
+        {/* INPUT TANGGAL PELAPORAN & NAMA PELAPOR */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/20 rounded-lg border">
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <Calendar className="h-4 w-4 text-muted-foreground" /> Tanggal Pelaporan *
+            </Label>
+            <Input 
+              type="date" 
+              value={reportedAt} 
+              onChange={e => setReportedAt(e.target.value)} 
+              required 
+            />
+            <p className="text-[11px] text-muted-foreground">Default hari ini, sesuaikan jika laporan diterima tanggal sebelumnya.</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5">
+              <User className="h-4 w-4 text-muted-foreground" /> Nama Pelapor
+            </Label>
+            <Input 
+              placeholder="Nama kontak person pelapor" 
+              value={reporterName} 
+              onChange={e => setReporterName(e.target.value)} 
+            />
+            <p className="text-[11px] text-muted-foreground">Otomatis terisi dari contact person kontrak, dapat diubah jika berbeda.</p>
+          </div>
+        </div>
+
         <div className="space-y-2"><Label>Title *</Label><Input value={title} onChange={e => setTitle(e.target.value)} required /></div>
         <div className="space-y-2"><Label>Description *</Label><Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={5} required /></div>
         
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2"><Label>Category</Label>
-            <Select value={category} onValueChange={setCategory}><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
-          </div>
-          <div className="space-y-2"><Label>Priority</Label>
-            <Select value={priority} onValueChange={setPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>
-              <SelectItem value="LOW">Low</SelectItem><SelectItem value="MEDIUM">Medium</SelectItem><SelectItem value="HIGH">High</SelectItem>
-            </SelectContent></Select>
-          </div>
+        {/* JENIS / KATEGORI TIKET */}
+        <div className="space-y-2">
+          <Label>Jenis / Kategori Tiket</Label>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger>
+              <SelectValue placeholder="Pilih Jenis / Kategori Tiket" />
+            </SelectTrigger>
+            <SelectContent>
+              {categoryList.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+
+        {/* FIELD DESKRIPSI KATEGORI OTHERS JIKA DIPILIH */}
+        {isOthersCategory && (
+          <div className="space-y-2 p-3 bg-muted/40 rounded-md border border-dashed border-primary/50 animate-in fade-in duration-200">
+            <Label className="text-primary font-semibold text-sm">
+              Deskripsi Kategori Others *
+            </Label>
+            <Textarea 
+              placeholder="Jelaskan secara spesifik kategori / jenis kendala yang dimaksud..."
+              value={otherDescription}
+              onChange={e => setOtherDescription(e.target.value)}
+              rows={3}
+              required
+            />
+            <p className="text-[11px] text-muted-foreground">Keterangan ini akan disertakan dalam detail deskripsi tiket.</p>
+          </div>
+        )}
 
         <Button type="submit" disabled={loading || !contract} className="w-full">{loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Create Ticket</Button>
       </form>
