@@ -1,10 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
+    agentUpgrade: 'security',
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    turbopack: {},
   },
 };
 

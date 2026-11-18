@@ -2,12 +2,16 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await auth();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     
-    const ticket = await prisma.ticket.findUnique({ where: { id: params.id } });
+    const { id } = await params;
+    const ticket = await prisma.ticket.findUnique({ where: { id } });
     if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
     
     if (ticket.status !== "RESOLVED") {
@@ -15,11 +19,11 @@ export async function POST(request: Request, { params }: { params: { id: string 
     }
     
     const updatedTicket = await prisma.ticket.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         status: "CONFIRMED",
         confirmedAt: new Date(),
-        confirmedBy: session.user.email,
+        confirmedById: session.user.id,
       },
     });
     

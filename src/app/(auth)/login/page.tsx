@@ -1,19 +1,49 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
 
-export default function LoginPage() {
+function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [msLoading, setMsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (!errorParam) return;
+
+    if (errorParam === "UserNotRegistered") {
+      setError(
+        "Akun Microsoft 365 Anda belum terdaftar di aplikasi ASSIST. Silakan hubungi Administrator untuk mendaftarkan akun Anda terlebih dahulu."
+      );
+    } else if (errorParam === "OAuthDisabled") {
+      setError(
+        "Login menggunakan akun Microsoft 365 saat ini sedang dinonaktifkan oleh Administrator."
+      );
+    } else if (errorParam === "AccessDenied") {
+      setError(
+        "Akses ditolak. Akun Microsoft Anda belum terdaftar atau tidak memiliki izin akses."
+      );
+    } else if (
+      errorParam === "OAuthSignin" ||
+      errorParam === "OAuthCallback" ||
+      errorParam === "OAuthCreateAccount"
+    ) {
+      setError(
+        "Gagal melakukan autentikasi dengan server Microsoft. Pastikan konfigurasi Azure sudah benar."
+      );
+    } else {
+      setError("Terjadi kesalahan saat proses login. Silakan coba kembali.");
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,13 +62,13 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        setError("Email atau password salah");
       } else {
         router.push("/");
         router.refresh();
       }
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      setError("Terjadi kesalahan. Silakan coba kembali.");
     } finally {
       setLoading(false);
     }
@@ -48,158 +78,189 @@ export default function LoginPage() {
     setError(null);
     setMsLoading(true);
     try {
-      const result = await signIn("microsoft-entra-id", { 
-        redirect: false,
-        callbackUrl: "/"
+      await signIn("microsoft-entra-id", {
+        callbackUrl: "/",
       });
-      
-      if (result?.error) {
-        setError("Microsoft login failed. Please try again.");
-        setMsLoading(false);
-      } else if (result?.url) {
-        router.push(result.url);
-      }
     } catch (err) {
-      setError("Microsoft login failed. Please try again.");
+      setError("Gagal menghubungkan ke Microsoft 365.");
       setMsLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
-      <div className="w-full max-w-md">
-        <div className="bg-card rounded-lg shadow-xl border border-border p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-foreground mb-2">
-              Astragraphia Solution Support System Ticketing 
-            </h1>
-           <h1 className="text-2xl font-bold text-foreground mb-2">(ASSIST)</h1>
-            <p className="text-muted-foreground text-sm">
-              Sign in to your account
-            </p>
+    <div className="w-full max-w-md">
+      <div className="bg-card rounded-lg shadow-xl border border-border p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Astragraphia Solution Support System Ticketing
+          </h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">(ASSIST)</h1>
+          <p className="text-muted-foreground text-sm">
+            Sign in to your account
+          </p>
+        </div>
+
+        {error && (
+          <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-md p-3 mb-6 text-xs flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <p className="leading-relaxed">{error}</p>
+          </div>
+        )}
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full mb-6 border-slate-200 hover:bg-slate-50 transition-colors"
+          onClick={handleMicrosoftLogin}
+          disabled={msLoading}
+        >
+          {msLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Menghubungkan ke Microsoft...
+            </>
+          ) : (
+            <>
+              <svg
+                className="mr-2 h-4 w-4 shrink-0"
+                viewBox="0 0 21 21"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect x="1" y="1" width="9" height="9" fill="#F25022" />
+                <rect x="11" y="1" width="9" height="9" fill="#00A4EF" />
+                <rect x="1" y="11" width="9" height="9" fill="#FFB900" />
+                <rect x="11" y="11" width="9" height="9" fill="#7FBA00" />
+              </svg>
+              Sign in with Microsoft
+            </>
+          )}
+        </Button>
+
+        <div className="relative mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">
+              Or continue with credentials
+            </span>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full mb-6"
-            onClick={handleMicrosoftLogin}
-            disabled={msLoading}
-          >
-            {msLoading ? (
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="password"
+                className="pl-10"
+                required
+              />
+            </div>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connecting to Microsoft...
+                Signing in...
               </>
             ) : (
-              <>
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
-                  <rect x="11" y="1" width="9" height="9" fill="#00A4EF"/>
-                  <rect x="1" y="11" width="9" height="9" fill="#FFB900"/>
-                  <rect x="11" y="11" width="9" height="9" fill="#7FBA00"/>
-                </svg>
-                Sign in with Microsoft
-              </>
+              "Sign In"
             )}
           </Button>
+        </form>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
+        <div className="mt-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/register"
+              className="text-primary hover:underline font-medium"
+            >
+              Create one
+            </Link>
+          </p>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="password"
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign In"
-              )}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/register"
-                className="text-primary hover:underline font-medium"
-              >
-                Create one
-              </Link>
-            </p>
-          </div>
-
+        {/* Demo Credentials di Non-Production Mode */}
+        {process.env.NODE_ENV !== "production" && (
           <div className="mt-8 pt-6 border-t border-border">
             <p className="text-xs text-muted-foreground text-center mb-4">
-              Demo Credentials
+              Demo Credentials (Internal)
             </p>
-            <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="bg-muted/50 rounded p-2 text-center">
                 <p className="font-medium text-foreground">Admin</p>
-                <p className="text-muted-foreground">admin@helpdesk.com</p>
+                <p className="text-muted-foreground truncate" title="admin@helpdesk.com">
+                  admin@helpdesk.com
+                </p>
                 <p className="text-muted-foreground">admin123</p>
               </div>
               <div className="bg-muted/50 rounded p-2 text-center">
-                <p className="font-medium text-foreground">PM</p>
-                <p className="text-muted-foreground">pm@helpdesk.com</p>
-                <p className="text-muted-foreground">pm1234</p>
+                <p className="font-medium text-foreground">Admin Ticket</p>
+                <p
+                  className="text-muted-foreground truncate"
+                  title="adminticket@helpdesk.com"
+                >
+                  adminticket@helpdesk.com
+                </p>
+                <p className="text-muted-foreground">adminticket123</p>
               </div>
               <div className="bg-muted/50 rounded p-2 text-center">
-                <p className="font-medium text-foreground">PIC/Technical</p>
-                <p className="text-muted-foreground">technical@email.com</p>
-                <p className="text-muted-foreground">tc1234</p>
+                <p className="font-medium text-foreground">Project Manager</p>
+                <p className="text-muted-foreground truncate" title="pm1@helpdesk.com">
+                  pm1@helpdesk.com
+                </p>
+                <p className="text-muted-foreground">pm123</p>
+              </div>
+              <div className="bg-muted/50 rounded p-2 text-center">
+                <p className="font-medium text-foreground">PIC / Teknisi</p>
+                <p className="text-muted-foreground truncate" title="pic1@helpdesk.com">
+                  pic1@helpdesk.com
+                </p>
+                <p className="text-muted-foreground">pic123</p>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-white" />
+          </div>
+        }
+      >
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }

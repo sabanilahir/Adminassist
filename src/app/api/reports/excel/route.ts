@@ -15,7 +15,7 @@ export async function GET() {
         user: {
           select: { name: true, email: true },
         },
-        agent: {
+        assignedTo: {
           select: { name: true },
         },
         category: {
@@ -25,7 +25,12 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    const buffer = await exportTicketsToExcel(tickets);
+    const exportData = tickets.map((t) => ({
+      ...t,
+      agent: t.assignedTo,
+    }));
+
+    const buffer = await exportTicketsToExcel(exportData);
     const filename = `tickets-report-${new Date().toISOString().split("T")[0]}.xlsx`;
 
     return new NextResponse(new Uint8Array(buffer), {

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -12,6 +12,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
     const { content, isInternal } = await request.json();
 
     if (!content || content.trim().length === 0) {
@@ -23,7 +24,7 @@ export async function POST(
 
     // Check ticket exists
     const ticket = await prisma.ticket.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!ticket) {
@@ -47,7 +48,7 @@ export async function POST(
       data: {
         content: content.trim(),
         isInternal: isInternal || false,
-        ticketId: params.id,
+        ticketId: id,
         userId: session.user.id,
       },
       include: {
@@ -60,7 +61,7 @@ export async function POST(
     // Update ticket status to REPLIED if agent/admin replies
     if (session.user.role !== "USER") {
       await prisma.ticket.update({
-        where: { id: params.id },
+        where: { id },
         data: { status: "REPLIED" },
       });
     }

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,6 +18,8 @@ import {
   LogOut,
   Settings,
   Bell,
+  Clock,
+  Cloud,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,8 +32,9 @@ export function Sidebar() {
   const role = session?.user?.role;
 
   const menuItems = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["USER", "PIC", "PROJECT_MANAGER", "ADMIN"] },
-    { href: "/tickets", label: "Tickets", icon: Ticket, roles: ["ADMIN"] },
+    { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["USER", "PIC", "PROJECT_MANAGER", "ADMIN", "ADMIN_TICKET"] },
+    { href: "/tickets", label: "Tickets", icon: Ticket, roles: ["ADMIN", "ADMIN_TICKET"] },
+    { href: "/sla", label: "SLA Policy", icon: Clock, roles: ["USER", "PIC", "PROJECT_MANAGER", "ADMIN", "ADMIN_TICKET"] },
     { href: "/inbox", label: "Inbox", icon: Inbox, roles: ["PIC", "PROJECT_MANAGER"] },
     { href: "/reports", label: "Reports", icon: FileText, roles: ["ADMIN", "PROJECT_MANAGER"] },
     { href: "/admin/users", label: "Users", icon: Users, roles: ["ADMIN"] },
@@ -41,7 +44,8 @@ export function Sidebar() {
   ];
 
   const settingsItems = [
-    { href: "/admin/settings", label: "OAuth", icon: Settings, roles: ["ADMIN"], exact: true },
+    { href: "/admin/settings", label: "Overview", icon: Settings, roles: ["ADMIN"], exact: true },
+    { href: "/admin/settings/azure", label: "Azure 365", icon: Cloud, roles: ["ADMIN"], exact: true },
     { href: "/admin/settings/notifications", label: "Notifications", icon: Bell, roles: ["ADMIN"], exact: false },
   ];
 
@@ -178,7 +182,10 @@ export function Sidebar() {
             "w-full text-muted-foreground hover:text-foreground",
             collapsed ? "justify-center px-0" : "justify-start"
           )}
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={async () => {
+            await signOut({ redirect: false });
+            window.location.href = "/login";
+          }}
           title={collapsed ? "Sign Out" : undefined}
         >
           <LogOut className="h-4 w-4 shrink-0" />

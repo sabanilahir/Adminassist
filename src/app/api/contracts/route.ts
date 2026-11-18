@@ -14,6 +14,7 @@ export async function GET() {
         customer: true,
         projectManager: { select: { id: true, name: true } },
         pics: { select: { id: true, name: true } },
+        slaPolicy: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -35,7 +36,8 @@ export async function POST(request: Request) {
       preventiveMandays,
       projectManagerId,
       picIds,
-      documentUrls, // Gunakan documentUrls (array)
+      slaPolicyId,
+      documentUrls,
       contactName,
       contactEmail,
       contactPhone,
@@ -56,10 +58,7 @@ export async function POST(request: Request) {
         contractNumber: contractNumber || null,
         correctiveMandays: correctiveMandays ? Number(correctiveMandays) : 0,
         preventiveMandays: preventiveMandays ? Number(preventiveMandays) : 0,
-        
-        // Memetakan array documentUrls ke database
         documentUrls: Array.isArray(documentUrls) ? documentUrls : [],
-
         contactName: contactName || null,
         contactEmail: contactEmail || null,
         contactPhone: contactPhone || null,
@@ -68,6 +67,10 @@ export async function POST(request: Request) {
 
         projectManager: projectManagerId
           ? { connect: { id: projectManagerId } }
+          : undefined,
+
+        slaPolicy: slaPolicyId
+          ? { connect: { id: slaPolicyId } }
           : undefined,
 
         pics: {
@@ -80,6 +83,7 @@ export async function POST(request: Request) {
         customer: true,
         projectManager: true,
         pics: true,
+        slaPolicy: true,
       },
     });
 

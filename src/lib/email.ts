@@ -1,5 +1,8 @@
-﻿import nodemailer from "nodemailer"
+import nodemailer from "nodemailer"
 import { prisma } from "@/lib/prisma"
+import { testGraphConnection, sendEmailViaGraph, GraphEmailConfig } from "@/lib/graph-email"
+
+export { testGraphConnection, sendEmailViaGraph }
 
 interface TicketEmailData {
   ticketId: string
@@ -19,8 +22,144 @@ interface TicketEmailData {
   updatedAt?: Date
 }
 
-async function getEmailConfig() {
+export async function getEmailConfig() {
+  // Retrieve the first (and only) email configuration from the database.
+  // This helper is used by all email-related utilities.
   return await prisma.emailConfig.findFirst()
+}
+
+/**
+ * Verify SMTP connection using current or provided configuration.
+ * Returns an object indicating success and any error message.
+ */
+export async function testSmtpConnection(overrideConfig?: {
+  smtpHost?: string
+  smtpPort?: number
+  smtpUser?: string
+  smtpPass?: string
+  smtpFrom?: string
+}) {
+  const config = overrideConfig || (await getEmailConfig())
+  if (!config) {
+    return { success: false, error: 'Email configuration not found' }
+  }
+
+  const host = config.smtpHost
+  const port = Number(config.smtpPort) || 587
+  const user = config.smtpUser
+  const pass = config.smtpPass
+
+  if (!host) {
+    return { success: false, error: 'SMTP Host wajib diisi' }
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: user || pass ? {
+        user: user || '',
+        pass: pass || '',
+      } : undefined,
+    })
+    await transporter.verify()
+    return { success: true, message: `Koneksi SMTP ke ${host}:${port} berhasil terverifikasi.` }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
+}
+
+/**
+ * Unified connection tester for either SMTP or Microsoft Graph API (O365)
+ */
+export async function testEmailConnection(provider?: string, overrideConfig?: any) {
+  const dbConfig = await getEmailConfig()
+  const targetProvider = provider || overrideConfig?.provider || dbConfig?.provider || 'smtp'
+
+  if (targetProvider === 'graph') {
+    return await testGraphConnection({
+      tenantId: overrideConfig?.graphTenantId ?? dbConfig?.graphTenantId ?? '',
+      clientId: overrideConfig?.graphClientId ?? dbConfig?.graphClientId ?? '',
+      clientSecret: overrideConfig?.graphClientSecret ?? dbConfig?.graphClientSecret ?? '',
+      senderEmail: overrideConfig?.graphSenderEmail ?? dbConfig?.graphSenderEmail ?? '',
+    })
+  }
+
+  return await testSmtpConnection(overrideConfig || dbConfig || undefined)
+}
+
+/**
+ * Send a test email to the specified address via SMTP or Microsoft Graph API.
+ * Uses a simple subject/body if none are provided.
+ */
+export async function sendTestEmail(
+  to: string,
+  subject?: string,
+  body?: string,
+  provider?: string,
+  overrideConfig?: any
+) {
+  const defaultSubject = 'Test Email Notifikasi ASSIST Helpdesk'
+  const defaultBody = `
+    <div style="font-family: Arial, sans-serif; padding: 10px;">
+      <h3 style="color: #2563eb; margin-top: 0;">Tes Pengiriman Email Notifikasi</h3>
+      <p>Ini adalah email uji coba untuk memverifikasi pengaturan notifikasi sistem ASSIST Helpdesk.</p>
+      <p>Jika Anda menerima email ini, koneksi dan konfigurasi pengiriman email telah berfungsi dengan baik.</p>
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 15px 0;" />
+      <p style="font-size: 12px; color: #64748b;">Waktu pengiriman: ${new Intl.DateTimeFormat("id-ID", { dateStyle: "full", timeStyle: "medium" }).format(new Date())}</p>
+    </div>
+  `
+
+  const targetSubject = subject ?? defaultSubject
+  const targetBody = body ?? defaultBody
+
+  const dbConfig = await getEmailConfig()
+  const targetProvider = provider || overrideConfig?.provider || dbConfig?.provider || 'smtp'
+
+  if (targetProvider === 'graph') {
+    const graphCfg: GraphEmailConfig = {
+      tenantId: overrideConfig?.graphTenantId ?? dbConfig?.graphTenantId ?? '',
+      clientId: overrideConfig?.graphClientId ?? dbConfig?.graphClientId ?? '',
+      clientSecret: overrideConfig?.graphClientSecret ?? dbConfig?.graphClientSecret ?? '',
+      senderEmail: overrideConfig?.graphSenderEmail ?? dbConfig?.graphSenderEmail ?? '',
+    }
+    return await sendEmailViaGraph(to, targetSubject, targetBody, graphCfg)
+  }
+
+  // SMTP path
+  const host = overrideConfig?.smtpHost ?? dbConfig?.smtpHost
+  const port = Number(overrideConfig?.smtpPort ?? dbConfig?.smtpPort) || 587
+  const user = overrideConfig?.smtpUser ?? dbConfig?.smtpUser
+  const pass = overrideConfig?.smtpPass ?? dbConfig?.smtpPass
+  const from = overrideConfig?.smtpFrom ?? dbConfig?.smtpFrom
+
+  if (!host) {
+    return { success: false, error: 'SMTP Host belum dikonfigurasi' }
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: user || pass ? {
+        user: user || '',
+        pass: pass || '',
+      } : undefined,
+    })
+
+    const info = await transporter.sendMail({
+      from: from || user || 'noreply@adminassist.local',
+      to,
+      subject: targetSubject,
+      html: targetBody,
+    })
+
+    return { success: true, messageId: info.messageId }
+  } catch (error) {
+    return { success: false, error: String(error) }
+  }
 }
 
 async function getTemplate(type: string) {
@@ -50,7 +189,22 @@ export async function sendEmail(to: string, subject: string, htmlBody: string) {
   
   if (!config || !config.isEnabled) {
     console.log("Email disabled or not configured")
-    return { success: false, error: "Email not configured" }
+    return { success: false, error: "Email not configured or disabled" }
+  }
+
+  // Check provider: Microsoft Graph API O365 vs SMTP
+  if (config.provider === "graph") {
+    if (!config.graphTenantId || !config.graphClientId || !config.graphClientSecret || !config.graphSenderEmail) {
+      console.error("[sendEmail] Microsoft Graph API configuration is incomplete")
+      return { success: false, error: "Microsoft Graph API configuration is incomplete" }
+    }
+
+    return await sendEmailViaGraph(to, subject, htmlBody, {
+      tenantId: config.graphTenantId,
+      clientId: config.graphClientId,
+      clientSecret: config.graphClientSecret,
+      senderEmail: config.graphSenderEmail,
+    })
   }
 
   try {
@@ -58,23 +212,23 @@ export async function sendEmail(to: string, subject: string, htmlBody: string) {
       host: config.smtpHost,
       port: config.smtpPort,
       secure: config.smtpPort === 465,
-      auth: {
+      auth: config.smtpUser || config.smtpPass ? {
         user: config.smtpUser,
         pass: config.smtpPass,
-      },
+      } : undefined,
     })
 
     const info = await transporter.sendMail({
-      from: config.smtpFrom,
+      from: config.smtpFrom || config.smtpUser,
       to,
       subject,
       html: htmlBody,
     })
 
-    console.log("Email sent:", info.messageId)
+    console.log("Email sent via SMTP:", info.messageId)
     return { success: true, messageId: info.messageId }
   } catch (error) {
-    console.error("Error sending email:", error)
+    console.error("Error sending email via SMTP:", error)
     return { success: false, error: String(error) }
   }
 }

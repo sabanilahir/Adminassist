@@ -16,7 +16,8 @@ export async function PATCH(
       preventiveMandays,
       projectManagerId,
       picIds,
-      documentUrls, // Gunakan documentUrls (array)
+      slaPolicyId,
+      documentUrls,
       contactName,
       contactEmail,
       contactPhone,
@@ -31,10 +32,7 @@ export async function PATCH(
         contractNumber: contractNumber || null,
         correctiveMandays: correctiveMandays ? Number(correctiveMandays) : 0,
         preventiveMandays: preventiveMandays ? Number(preventiveMandays) : 0,
-        
-        // Memetakan array documentUrls ke database
         documentUrls: Array.isArray(documentUrls) ? documentUrls : [],
-
         contactName: contactName || null,
         contactEmail: contactEmail || null,
         contactPhone: contactPhone || null,
@@ -43,6 +41,10 @@ export async function PATCH(
 
         projectManager: projectManagerId
           ? { connect: { id: projectManagerId } }
+          : { disconnect: true },
+
+        slaPolicy: slaPolicyId
+          ? { connect: { id: slaPolicyId } }
           : { disconnect: true },
 
         pics: {
@@ -55,6 +57,7 @@ export async function PATCH(
         customer: true,
         projectManager: true,
         pics: true,
+        slaPolicy: true,
       },
     });
 
