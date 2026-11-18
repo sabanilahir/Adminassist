@@ -1,12 +1,10 @@
 name: Deploy to Windows Server (CD)
 
 on:
-  pull_request:
+  push:
     branches:
-      - master
-    types:
-      - closed
-  workflow_dispatch:
+      - master # Otomatis jalan setiap kali ada merge ke branch master!
+  workflow_dispatch: # Tombol manual tetap ada jika sewaktu-waktu ingin redeploy
 
 concurrency:
   group: production-deployment
@@ -15,7 +13,6 @@ concurrency:
 jobs:
   deploy:
     name: Deploy to C:\Assists\source\adminassist
-    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true)
     runs-on: self-hosted
     defaults:
       run:
@@ -24,8 +21,6 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
-        with:
-          ref: master
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -51,8 +46,13 @@ jobs:
             Copy-Item -Path "$target\.env" -Destination ".env" -Force
           } else {
             Write-Host "Membuat dummy .env untuk kebutuhan build..."
-            "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ticket_db" | Out-File -FilePath ".env" -Encoding utf8
+            "DATABASE_URL=postgresql://postgres:Password.123@localhost:5432/ticket_db?schema=public" | Out-File -FilePath ".env" -Encoding utf8
           }
+
+      - name: Sync Database Schema (Auto Migrate)
+        run: |
+          Write-Host "Updating database PostgreSQL schema..."
+          npx prisma db push --accept-data-loss
 
       - name: Build Next.js
         env:
@@ -94,7 +94,6 @@ jobs:
           $target = "C:\Assists\source\adminassist"
           Set-Location -Path $target
 
-          # Prioritas 1: Jika menggunakan PM2
           if (Get-Command pm2 -ErrorAction SilentlyContinue) {
             Write-Host "PM2 detected. Restarting application..."
             $pm2Status = pm2 describe adminassist 2>&1
@@ -106,7 +105,7 @@ jobs:
             }
             pm2 save
           } else {
-            Write-Host "PM2 not found. Silakan jalankan via CMD atau pasang PM2."
+            Write-Host "NOTICE: PM2 not found. If running manually via CMD, please restart the CMD window."
           }
 
           Write-Host "Deployment completed successfully!"
