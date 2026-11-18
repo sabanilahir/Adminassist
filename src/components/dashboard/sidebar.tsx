@@ -180,7 +180,10 @@ export function Sidebar() {
             "w-full text-muted-foreground hover:text-foreground",
             collapsed ? "justify-center px-0" : "justify-start"
           )}
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={async () => {
+            await signOut({ redirect: false });
+            window.location.href = "/login";
+          }}
           title={collapsed ? "Sign Out" : undefined}
         >
           <LogOut className="h-4 w-4 shrink-0" />
