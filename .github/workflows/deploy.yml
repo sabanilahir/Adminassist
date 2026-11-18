@@ -6,7 +6,7 @@ on:
       - master
     types:
       - closed
-  workflow_dispatch: # Memunculkan tombol "Run workflow"
+  workflow_dispatch:
 
 concurrency:
   group: production-deployment
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy to C:\Assists
+    name: Deploy to C:\Assists\source\adminassist
     if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true)
     runs-on: self-hosted
     defaults:
@@ -45,10 +45,10 @@ jobs:
 
       - name: Prepare Environment for Build
         run: |
-          # Gunakan .env produksi dari C:\Assists jika ada, atau buat dummy DATABASE_URL agar build tidak gagal
-          if (Test-Path "C:\Assists\.env") {
-            Write-Host "Menggunakan file .env dari C:\Assists..."
-            Copy-Item -Path "C:\Assists\.env" -Destination ".env" -Force
+          $target = "C:\Assists\source\adminassist"
+          if (Test-Path "$target\.env") {
+            Write-Host "Menggunakan file .env dari $target..."
+            Copy-Item -Path "$target\.env" -Destination ".env" -Force
           } else {
             Write-Host "Membuat dummy .env untuk kebutuhan build..."
             "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ticket_db" | Out-File -FilePath ".env" -Encoding utf8
@@ -61,9 +61,9 @@ jobs:
           Write-Host "Building Next.js application for production..."
           npm run build
 
-      - name: Sync Files to C:\Assists
+      - name: Sync Files to C:\Assists\source\adminassist
         run: |
-          $target = "C:\Assists"
+          $target = "C:\Assists\source\adminassist"
           Write-Host "Syncing files to $target..."
 
           if (-not (Test-Path -Path $target)) {
@@ -73,7 +73,7 @@ jobs:
           $excludeDirs = @('.git', '.github', 'node_modules')
           $excludeFiles = @('.env')
 
-          # Robocopy source files (kode keluar 0-7 adalah sukses)
+          # Robocopy source files
           & robocopy . $target /E /XD $excludeDirs /XF $excludeFiles /NP /R:2 /W:2
           if ($LASTEXITCODE -ge 8) {
             throw "Robocopy failed with exit code $LASTEXITCODE"
@@ -91,26 +91,22 @@ jobs:
 
       - name: Restart Application Process
         run: |
-          $target = "C:\Assists"
+          $target = "C:\Assists\source\adminassist"
           Set-Location -Path $target
 
+          # Prioritas 1: Jika menggunakan PM2
           if (Get-Command pm2 -ErrorAction SilentlyContinue) {
             Write-Host "PM2 detected. Restarting application..."
             $pm2Status = pm2 describe adminassist 2>&1
             if ($LASTEXITCODE -eq 0) {
-              pm2 restart adminassist
+              pm2 restart adminassist --update-env
             } else {
               Write-Host "Starting adminassist with PM2 for the first time..."
               pm2 start npm --name "adminassist" -- start
             }
             pm2 save
-          }
-          elseif (Get-Service -Name "AdminAssist" -ErrorAction SilentlyContinue) {
-            Write-Host "Restarting Windows Service: AdminAssist..."
-            Restart-Service -Name "AdminAssist"
-          }
-          else {
-            Write-Host "NOTICE: Neither PM2 nor Windows Service 'AdminAssist' found."
+          } else {
+            Write-Host "PM2 not found. Silakan jalankan via CMD atau pasang PM2."
           }
 
           Write-Host "Deployment completed successfully!"
