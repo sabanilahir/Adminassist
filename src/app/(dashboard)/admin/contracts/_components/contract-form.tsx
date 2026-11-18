@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,6 +99,17 @@ export function ContractForm({ contract, onSuccess, isOpen, onClose }: any) {
       }
     });
   }, [isShow, contract?.id]);
+
+  // Refresh SLA list when user focuses or clicks dropdown
+  async function refreshSlaPolicies() {
+    try {
+      const res = await fetch("/api/sla");
+      if (res.ok) {
+        const s = await res.json();
+        setSlaPolicies(Array.isArray(s) ? s : []);
+      }
+    } catch {}
+  }
 
   // Handler Upload Multiple Files
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -229,10 +241,18 @@ export function ContractForm({ contract, onSuccess, isOpen, onClose }: any) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-semibold">Service Level Agreement (SLA) Policy</Label>
-              <span className="text-[11px] text-muted-foreground">Default otomatis berlaku jika tidak dipilih</span>
+              <Link
+                href="/admin/settings/sla"
+                target="_blank"
+                className="text-[11px] text-primary hover:underline font-medium flex items-center gap-1"
+                title="Buka halaman manajemen master SLA di tab baru untuk membuat atau mengubah kebijakan SLA"
+              >
+                ⚙️ Kelola / Buat SLA Baru
+              </Link>
             </div>
             <select
               value={selectedSlaPolicy}
+              onFocus={refreshSlaPolicies}
               onChange={e => setSelectedSlaPolicy(e.target.value)}
               className="w-full p-2 border rounded bg-background text-foreground text-sm"
             >
@@ -243,6 +263,9 @@ export function ContractForm({ contract, onSuccess, isOpen, onClose }: any) {
                 </option>
               ))}
             </select>
+            <p className="text-[11px] text-muted-foreground">
+              Pilih kebijakan SLA untuk kontrak ini. Jika memilih &quot;Default SLA Sistem&quot;, tiket akan mengikuti SLA bawaan (High: 4j, Med: 24j, Low: 72j).
+            </p>
           </div>
 
           {/* Informasi Contact Person / PIC Klien Spesifik Kontrak */}

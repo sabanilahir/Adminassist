@@ -18,6 +18,7 @@ import {
   LogOut,
   Settings,
   Bell,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ export function Sidebar() {
   const settingsItems = [
     { href: "/admin/settings", label: "OAuth", icon: Settings, roles: ["ADMIN"], exact: true },
     { href: "/admin/settings/notifications", label: "Notifications", icon: Bell, roles: ["ADMIN"], exact: false },
+    { href: "/admin/settings/sla", label: "SLA Policy", icon: Clock, roles: ["ADMIN", "ADMIN_TICKET"], exact: false },
   ];
 
   // Filter menu berdasarkan role
