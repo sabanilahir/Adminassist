@@ -15,7 +15,6 @@ concurrency:
 jobs:
   deploy:
     name: Deploy to C:\Assists
-    # Berjalan jika tombol Run workflow ditekan ATAU jika PR di-merge ke master
     if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true)
     runs-on: self-hosted
     defaults:
@@ -43,6 +42,17 @@ jobs:
         run: |
           Write-Host "Generating Prisma client..."
           npx prisma generate
+
+      - name: Prepare Environment for Build
+        run: |
+          # Gunakan .env produksi dari C:\Assists jika ada, atau buat dummy DATABASE_URL agar build tidak gagal
+          if (Test-Path "C:\Assists\.env") {
+            Write-Host "Menggunakan file .env dari C:\Assists..."
+            Copy-Item -Path "C:\Assists\.env" -Destination ".env" -Force
+          } else {
+            Write-Host "Membuat dummy .env untuk kebutuhan build..."
+            "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ticket_db" | Out-File -FilePath ".env" -Encoding utf8
+          }
 
       - name: Build Next.js
         env:
