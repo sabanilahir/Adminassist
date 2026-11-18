@@ -98,3 +98,18 @@ export interface Customer {
   reportedAt?: Date | null;
   reporterName?: string | null;
 }
+
+
+export const STATUS_LABELS_USER: Record<string, string> = {
+  NEW: "Baru Diterima",
+  OPEN: "Dalam Antrean",
+  IN_PROGRESS: "Sedang Dikerjakan",
+  WAITING_REPLY: "Menunggu Informasi Customer",
+  REPLIED: "Customer Telah Merespon",
+  ON_HOLD: "Ditunda Sementara",
+  NOT_APPLICABLE: "Di Luar Lingkup Layanan",
+  RESOLVED: "Telah Diselesaikan",
+  CONFIRMED: "Dikonfirmasi Selesai",
+  CLOSED: "Tiket Ditutup",
+  REJECTED: "Diteruskan ke Tim Terkait",
+};

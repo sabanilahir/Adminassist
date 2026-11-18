@@ -4,14 +4,17 @@
  * Centralized email notification helpers for ticket events.
  * 
  * Events covered:
- * 1. New ticket created  → notify PM & all PICs on the related contract
+ * 1. New ticket created  → notify PM & all PICs on the related contract (or Admin if orphan)
  * 2. PIC claims a ticket → notify PM
- * 3. Ticket status changed → notify PM
+ * 3. Ticket status changed → notify Customer & PM
  * 4. PM assigns ticket to a PIC → notify the assigned PIC
  */
 
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { STATUS_LABELS_USER } from "@/types";
+
+
 
 // ---------------------------------------------------------------------------
 // Shared HTML wrapper
@@ -42,6 +45,8 @@ function ticketTable(ticket: any): string {
   const priorityColor =
     ticket.priority === "HIGH" ? "#e53e3e" : ticket.priority === "MEDIUM" ? "#dd6b20" : "#3182ce";
 
+  const statusDisplay = STATUS_LABELS_USER[ticket.status] || ticket.status;
+
   return `
     <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
       <tr style="border-bottom:1px solid #eee;">
@@ -54,7 +59,7 @@ function ticketTable(ticket: any): string {
       </tr>
       <tr style="border-bottom:1px solid #eee;">
         <td style="padding:8px;font-weight:bold;color:#555;">Status</td>
-        <td style="padding:8px;"><span style="background:#4caf50;color:white;padding:3px 10px;border-radius:4px;">${ticket.status}</span></td>
+        <td style="padding:8px;"><span style="background:#4caf50;color:white;padding:3px 10px;border-radius:4px;">${statusDisplay}</span></td>
       </tr>
       <tr style="border-bottom:1px solid #eee;">
         <td style="padding:8px;font-weight:bold;color:#555;">Priority</td>
@@ -81,14 +86,13 @@ function ticketTable(ticket: any): string {
         <td style="padding:8px;font-weight:bold;color:#555;">Nama Pelapor</td>
         <td style="padding:8px;">${ticket.reporterName}</td>
       </tr>` : ""}
-      ${ticket.reportedAt ? `
+      ${ticket.dueDate ? `
       <tr style="border-bottom:1px solid #eee;">
-        <td style="padding:8px;font-weight:bold;color:#555;">Tgl Pelaporan</td>
-        <td style="padding:8px;">${fmt(ticket.reportedAt)}</td>
+        <td style="padding:8px;font-weight:bold;color:#555;">Target SLA</td>
+        <td style="padding:8px;color:#d97706;font-weight:600;">${fmt(ticket.dueDate)}</td>
       </tr>` : ""}
-      </tr>
       <tr>
-        <td style="padding:8px;font-weight:bold;color:#555;">Created At</td>
+        <td style="padding:8px;font-weight:bold;color:#555;">Waktu Dibuat</td>
         <td style="padding:8px;">${fmt(ticket.createdAt)}</td>
       </tr>
     </table>
@@ -117,7 +121,7 @@ async function loadTicketFull(ticketId: string) {
 }
 
 // ---------------------------------------------------------------------------
-// 1. New ticket created → PM + all PICs on the related contract
+// 1. New ticket created → PM + all PICs on the related contract (or Admins if orphan)
 // ---------------------------------------------------------------------------
 export async function notifyNewTicket(ticketId: string) {
   try {
@@ -141,20 +145,31 @@ export async function notifyNewTicket(ticketId: string) {
       }
     }
 
+    // Fallback: Notify Admins if ticket has no contract assigned
+    if (recipients.length === 0) {
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ["ADMIN_TICKET", "ADMIN"] } },
+        select: { name: true, email: true },
+      });
+      recipients.push(...admins);
+    }
+
     if (recipients.length === 0) return;
 
     const subject = `[ASSIST] Tiket Baru: ${ticket.trackingId} – ${ticket.title}`;
     const html = wrapHtml(`
-      <h2 style="color:#333;margin-top:0;">Laporan Tiket Baru</h2>
+      <h2 style="color:#333;margin-top:0;">Laporan Tiket Baru Masuk</h2>
       <p>Halo <strong>{{NAME}}</strong>,</p>
       <p>Terdapat tiket baru yang masuk ke sistem dan memerlukan perhatian Anda.</p>
       ${ticketTable(ticket)}
       <p style="color:#888;font-size:13px;">Silakan login ke sistem ASSIST untuk meninjau dan menindaklanjuti tiket ini.</p>
     `);
 
-    for (const r of recipients) {
-      await sendEmail(r.email, subject, html.replace("{{NAME}}", r.name));
-    }
+    await Promise.allSettled(
+      recipients.map((r) =>
+        sendEmail(r.email, subject, html.replace("{{NAME}}", r.name))
+      )
+    );
   } catch (err) {
     console.error("[notifyNewTicket] Error:", err);
   }
@@ -188,7 +203,7 @@ export async function notifyPicClaimed(ticketId: string, picName: string, picEma
           <td style="padding:8px;">${now}</td>
         </tr>
       </table>
-      <p style="color:#888;font-size:13px;">Tiket kini berstatus <strong>IN_PROGRESS</strong>.</p>
+      <p style="color:#888;font-size:13px;">Tiket kini berstatus <strong>Sedang Dikerjakan (IN_PROGRESS)</strong>.</p>
     `);
 
     await sendEmail(pm.email, subject, html);
@@ -206,6 +221,8 @@ export async function notifyStatusChanged(ticketId: string, oldStatus: string, n
     if (!ticket) return;
 
     const now = new Intl.DateTimeFormat("id-ID", { dateStyle: "full", timeStyle: "short" }).format(new Date());
+    const customerNewStatusLabel = STATUS_LABELS_USER[newStatus] || newStatus;
+    const customerOldStatusLabel = STATUS_LABELS_USER[oldStatus] || oldStatus;
 
     // 1. Kirim notifikasi ke Customer & Pelapor
     const customerRecipients: { name: string; email: string }[] = [];
@@ -235,20 +252,20 @@ export async function notifyStatusChanged(ticketId: string, oldStatus: string, n
       </div>
     ` : "";
 
-    const customerSubject = `[ASSIST] Update Status Tiket ${ticket.trackingId}: ${newStatus}`;
+    const customerSubject = `[ASSIST] Update Status Tiket ${ticket.trackingId}: ${customerNewStatusLabel}`;
     const customerHtml = wrapHtml(`
       <h2 style="color:#333;margin-top:0;">Pembaruan Status Tiket Anda</h2>
       <p>Halo <strong>{{NAME}}</strong>,</p>
-      <p>Status tiket pengaduan Anda telah diperbarui menjadi <strong>${newStatus}</strong>.</p>
+      <p>Status tiket pengaduan Anda telah diperbarui menjadi <strong>${customerNewStatusLabel}</strong>.</p>
       ${ticketTable({ ...ticket, status: newStatus })}
       <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;">
         <tr style="border-bottom:1px solid #eee;">
           <td style="padding:8px;font-weight:bold;color:#555;width:160px;">Status Sebelumnya</td>
-          <td style="padding:8px;"><span style="text-decoration:line-through;color:#999;">${oldStatus}</span></td>
+          <td style="padding:8px;"><span style="text-decoration:line-through;color:#999;">${customerOldStatusLabel}</span></td>
         </tr>
         <tr style="border-bottom:1px solid #eee;">
           <td style="padding:8px;font-weight:bold;color:#555;">Status Terkini</td>
-          <td style="padding:8px;"><span style="background:#4caf50;color:white;padding:3px 10px;border-radius:4px;">${newStatus}</span></td>
+          <td style="padding:8px;"><span style="background:#4caf50;color:white;padding:3px 10px;border-radius:4px;">${customerNewStatusLabel}</span></td>
         </tr>
         <tr>
           <td style="padding:8px;font-weight:bold;color:#555;">Waktu Perubahan</td>
@@ -259,9 +276,11 @@ export async function notifyStatusChanged(ticketId: string, oldStatus: string, n
       <p style="color:#888;font-size:13px;margin-top:16px;">Anda dapat memeriksa riwayat dan perkembangan tiket melalui portal bantuan ASSIST.</p>
     `);
 
-    for (const r of customerRecipients) {
-      await sendEmail(r.email, customerSubject, customerHtml.replace("{{NAME}}", r.name));
-    }
+    await Promise.allSettled(
+      customerRecipients.map((r) =>
+        sendEmail(r.email, customerSubject, customerHtml.replace("{{NAME}}", r.name))
+      )
+    );
 
     // 2. Kirim notifikasi ke Project Manager (Internal)
     const pm = ticket.contract?.projectManager;
@@ -296,7 +315,6 @@ export async function notifyStatusChanged(ticketId: string, oldStatus: string, n
 }
 
 // ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
 // 3b. Ticket rejected by PM / PIC → notify ADMIN_TICKET with Reason
 // ---------------------------------------------------------------------------
 export async function notifyTicketRejected(ticketId: string, reason: string, rejectedByName?: string) {
@@ -304,7 +322,6 @@ export async function notifyTicketRejected(ticketId: string, reason: string, rej
     const ticket = await loadTicketFull(ticketId);
     if (!ticket) return;
 
-    // Ambil semua user dengan role ADMIN_TICKET (jika belum ada, fallback ke ADMIN)
     let adminTickets = await prisma.user.findMany({
       where: { role: "ADMIN_TICKET" },
       select: { id: true, name: true, email: true },
@@ -319,7 +336,6 @@ export async function notifyTicketRejected(ticketId: string, reason: string, rej
 
     const recipients: { name: string; email: string }[] = [...adminTickets];
 
-    // Tembuskan juga ke PM kontrak jika ada dan belum ada di list
     const pm = ticket.contract?.projectManager;
     if (pm?.email && !recipients.some((r) => r.email === pm.email)) {
       recipients.push(pm);
@@ -342,9 +358,11 @@ export async function notifyTicketRejected(ticketId: string, reason: string, rej
       <p style="color:#666;font-size:13px;">Silakan login ke portal ASSIST untuk meninjau dan mengirim ulang tiket ini.</p>
     `);
 
-    for (const r of recipients) {
-      await sendEmail(r.email, subject, html.replace("{{NAME}}", r.name));
-    }
+    await Promise.allSettled(
+      recipients.map((r) =>
+        sendEmail(r.email, subject, html.replace("{{NAME}}", r.name))
+      )
+    );
   } catch (err) {
     console.error("[notifyTicketRejected] Error:", err);
   }
@@ -382,19 +400,21 @@ export async function notifyTicketNotApplicable(ticketId: string, reason: string
     const html = wrapHtml(`
       <h2 style="color:#dc2626;margin-top:0;">Pemberitahuan Status Tiket: Not Applicable</h2>
       <p>Halo <strong>{{NAME}}</strong>,</p>
-      <p>Tiket pengaduan Anda dengan nomor pelacakan <strong>${ticket.trackingId}</strong> telah ditinjau dan dinyatakan <strong>NOT APPLICABLE</strong> (Tidak Dapat Diterapkan / Di Luar Lingkup) oleh Project Manager.</p>
+      <p>Tiket pengaduan Anda dengan nomor pelacakan <strong>${ticket.trackingId}</strong> telah ditinjau dan dinyatakan <strong>NOT APPLICABLE</strong> (Di Luar Lingkup Layanan) oleh Project Manager.</p>
       ${ticketTable({ ...ticket, status: "NOT_APPLICABLE" })}
       <div style="margin:20px 0;padding:16px;background:#fff1f2;border:1px solid #fecdd3;border-left:5px solid #e11d48;border-radius:4px;">
         <h4 style="margin:0 0 6px 0;color:#9f1239;font-size:15px;">Alasan Not Applicable:</h4>
         <p style="margin:0;font-size:14px;color:#881337;line-height:1.5;white-space:pre-wrap;">${reason}</p>
         ${pmName ? `<p style="margin:8px 0 0 0;font-size:12px;color:#9f1239;font-style:italic;">Diputuskan oleh Project Manager: ${pmName}</p>` : ""}
       </div>
-      <p style="color:#666;font-size:13px;">Jika Anda memerlukan informasi atau klarifikasi lebih lanjut mengenai keputusan ini, silakan hubungi Project Manager atau Account Manager terkait.</p>
+      <p style="color:#666;font-size:13px;">Jika Anda memerlukan informasi atau klarifikasi lebih lanjut mengenai keputusan ini, silakan hubungi Project Manager terkait.</p>
     `);
 
-    for (const r of customerRecipients) {
-      await sendEmail(r.email, subject, html.replace("{{NAME}}", r.name));
-    }
+    await Promise.allSettled(
+      customerRecipients.map((r) =>
+        sendEmail(r.email, subject, html.replace("{{NAME}}", r.name))
+      )
+    );
 
     // Tembusan ke PM
     const pm = ticket.contract?.projectManager;
@@ -414,7 +434,6 @@ export async function notifyPicAssigned(ticketId: string, picId: string) {
     const ticket = await loadTicketFull(ticketId);
     if (!ticket) return;
 
-    // Load PIC details
     const pic = await prisma.user.findUnique({
       where: { id: picId },
       select: { id: true, name: true, email: true },
@@ -436,4 +455,3 @@ export async function notifyPicAssigned(ticketId: string, picId: string) {
     console.error("[notifyPicAssigned] Error:", err);
   }
 }
-

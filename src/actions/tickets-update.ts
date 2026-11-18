@@ -17,6 +17,28 @@ export async function updateTicket(id: string, data: any) {
     return { error: "Tiket dengan status Not Applicable tidak dapat diedit lagi kecuali oleh Admin." };
   }
 
+  // Sanitasi & Proteksi wewenang field (Field-Level Authorization)
+  const userRole = session.user.role;
+  const isPrivilegedAdmin = userRole === "ADMIN" || userRole === "ADMIN_TICKET";
+
+  // Field sistem yang tidak boleh diubah melalui updateTicket biasa
+  delete data.id;
+  delete data.trackingId;
+  delete data.createdAt;
+
+  if (!isPrivilegedAdmin) {
+    delete data.customerId;
+    delete data.contractId;
+    delete data.userId;
+
+    // PIC hanya diizinkan mengupdate progres teknis
+    if (userRole === "PIC") {
+      delete data.priority;
+      delete data.categoryId;
+      delete data.assignedToId;
+    }
+  }
+
   // Siapkan payload update
   const payload: any = { ...data };
 
@@ -38,9 +60,41 @@ export async function updateTicket(id: string, data: any) {
     }
 
     payload.resolvedAt = new Date();
+    // Otomatis jadwalkan penutupan setelah 7 hari jika tidak ada respon
+    payload.autoCloseAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    // Cek apakah penyelesaian melanggar SLA
+    if (existingTicket.dueDate && new Date() > existingTicket.dueDate) {
+      payload.slaBreached = true;
+    }
   }
 
-  await prisma.ticket.update({ where: { id }, data: payload });
+  // Transaksi update tiket + pencatatan Audit Trail
+  await prisma.$transaction(async (tx) => {
+    await tx.ticket.update({ where: { id }, data: payload });
+
+    if (data.status && data.status !== existingTicket.status) {
+      await tx.ticketActivity.create({
+        data: {
+          ticketId: id,
+          userId: session.user.id,
+          action: "STATUS_CHANGED",
+          fromState: existingTicket.status,
+          toState: payload.status,
+          note: `Status diubah dari ${existingTicket.status} menjadi ${payload.status} oleh ${session.user.name}`,
+        },
+      });
+    } else {
+      await tx.ticketActivity.create({
+        data: {
+          ticketId: id,
+          userId: session.user.id,
+          action: "TICKET_UPDATED",
+          note: `Detail tiket diperbarui oleh ${session.user.name}`,
+        },
+      });
+    }
+  });
 
   // Notifikasi: status berubah → PM
   if (data.status && data.status !== existingTicket.status) {
@@ -68,13 +122,25 @@ export async function claimTicket(ticketId: string) {
   if (!ticket) return { error: "Not found" };
   if (ticket.assignedToId) return { error: "Already assigned" };
   
-  await prisma.ticket.update({ 
-    where: { id: ticketId }, 
-    data: { 
-      assignedToId: session.user.id, 
-      status: Status.IN_PROGRESS 
-    } 
-  });
+  await prisma.$transaction([
+    prisma.ticket.update({ 
+      where: { id: ticketId }, 
+      data: { 
+        assignedToId: session.user.id, 
+        status: Status.IN_PROGRESS 
+      } 
+    }),
+    prisma.ticketActivity.create({
+      data: {
+        ticketId,
+        userId: session.user.id,
+        action: "TICKET_CLAIMED",
+        fromState: ticket.status,
+        toState: Status.IN_PROGRESS,
+        note: `Tiket diklaim oleh PIC: ${session.user.name}`,
+      },
+    }),
+  ]);
 
   // Notifikasi: PIC klaim tiket → PM
   notifyPicClaimed(ticketId, session.user.name ?? "", session.user.email ?? "").catch(console.error);

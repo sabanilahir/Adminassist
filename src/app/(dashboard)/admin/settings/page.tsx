@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Save, Shield, Info, Bell, Mail } from "lucide-react";
+import { Loader2, Save, Shield, Info, Bell, Mail, Clock } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
 
@@ -113,7 +113,23 @@ export default function AdminSettingsPage() {
             </CardHeader>
             <CardContent>
               <CardDescription>
-                Configure SMTP settings and email notification templates for ticket updates
+                Configure Microsoft 365 (Graph API), SMTP settings, and email notification templates for ticket updates
+              </CardDescription>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/admin/settings/sla">
+          <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                SLA Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardDescription>
+                Kelola master Service Level Agreement (SLA), target respon & resolusi per prioritas, dan asosiasi kontrak customer
               </CardDescription>
             </CardContent>
           </Card>

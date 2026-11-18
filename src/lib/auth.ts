@@ -41,8 +41,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           },
         })
 
-        // 2. Fallback alias mapping for convenience / demo
-        if (!user) {
+        // 2. Fallback alias mapping for convenience / demo (DEV ONLY with explicit ENABLE_DEMO_LOGIN)
+        const isDemoAllowed = process.env.NODE_ENV !== "production" && process.env.ENABLE_DEMO_LOGIN === "true";
+        if (!user && isDemoAllowed) {
           const lower = rawEmail.toLowerCase()
           if (lower === "pm@helpdesk.com" || lower === "pm1@helpdesk.com") {
             user = await prisma.user.findFirst({
@@ -68,8 +69,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // 3. Check password
         let match = await compare(password, user.password)
 
-        // Support demo passwords if user used passwords from demo label
-        if (!match) {
+        // Support demo passwords only in non-production with demo enabled
+        if (!match && isDemoAllowed) {
           if (password === "pm1234" && user.role === "PROJECT_MANAGER") {
             match = await compare("pm123", user.password)
           } else if (password === "tc1234" && user.role === "PIC") {

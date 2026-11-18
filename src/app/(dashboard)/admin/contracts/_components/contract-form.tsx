@@ -14,6 +14,8 @@ export function ContractForm({ contract, onSuccess, isOpen, onClose }: any) {
   const [customers, setCustomers] = useState<any[]>([]);
   const [pms, setPms] = useState<any[]>([]);
   const [pics, setPics] = useState<any[]>([]);
+  const [slaPolicies, setSlaPolicies] = useState<any[]>([]);
+  const [selectedSlaPolicy, setSelectedSlaPolicy] = useState("");
 
   const [form, setForm] = useState({
     customerId: "", 
@@ -48,7 +50,9 @@ export function ContractForm({ contract, onSuccess, isOpen, onClose }: any) {
       fetch("/api/customers").then(r => r.json()),
       fetch("/api/users?role=PROJECT_MANAGER").then(r => r.json()),
       fetch("/api/users?role=PIC").then(r => r.json()),
-    ]).then(([c, u, p]) => {
+      fetch("/api/sla").then(r => r.json()),
+    ]).then(([c, u, p, s]) => {
+      setSlaPolicies(Array.isArray(s) ? s : []);
       setCustomers(Array.isArray(c) ? c : []);
       setPms(Array.isArray(u) ? u : []);
       setPics(Array.isArray(p) ? p : []);
@@ -74,6 +78,7 @@ export function ContractForm({ contract, onSuccess, isOpen, onClose }: any) {
 
         setSelectedPm(contract.projectManagerId || "");
         setSelectedPics(contract.pics?.map((p: any) => p.id) || []);
+        setSelectedSlaPolicy(contract.slaPolicyId || "");
       } else {
         setForm({
           customerId: "",
@@ -89,6 +94,7 @@ export function ContractForm({ contract, onSuccess, isOpen, onClose }: any) {
         setDocumentUrls([]);
         setSelectedPm("");
         setSelectedPics([]);
+        setSelectedSlaPolicy("");
       }
     });
   }, [isShow, contract?.id]);
@@ -143,7 +149,8 @@ export function ContractForm({ contract, onSuccess, isOpen, onClose }: any) {
         ...form, 
         documentUrls, // Kirimkan array documentUrls ke API
         projectManagerId: selectedPm, 
-        picIds: selectedPics 
+        picIds: selectedPics, 
+        slaPolicyId: selectedSlaPolicy || null 
       }),
     });
     
@@ -216,6 +223,26 @@ export function ContractForm({ contract, onSuccess, isOpen, onClose }: any) {
                 className="dark:[color-scheme:dark]"
               />
             </div>
+          </div>
+
+          {/* Kebijakan SLA Kontrak */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs font-semibold">Service Level Agreement (SLA) Policy</Label>
+              <span className="text-[11px] text-muted-foreground">Default otomatis berlaku jika tidak dipilih</span>
+            </div>
+            <select
+              value={selectedSlaPolicy}
+              onChange={e => setSelectedSlaPolicy(e.target.value)}
+              className="w-full p-2 border rounded bg-background text-foreground text-sm"
+            >
+              <option value="">Gunakan Default SLA Sistem</option>
+              {slaPolicies.map((p: any) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} {p.isDefault ? "(Default)" : ""} — High: {p.resolutionHoursHigh}j | Med: {p.resolutionHoursMedium}j | Low: {p.resolutionHoursLow}j
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Informasi Contact Person / PIC Klien Spesifik Kontrak */}

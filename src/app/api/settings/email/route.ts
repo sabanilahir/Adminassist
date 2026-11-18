@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
@@ -13,11 +13,16 @@ export async function GET() {
     const config = await prisma.emailConfig.findFirst()
 
     return NextResponse.json(config || {
+      provider: "smtp",
       smtpHost: "smtp.gmail.com",
       smtpPort: 587,
       smtpUser: "",
       smtpPass: "",
       smtpFrom: "",
+      graphTenantId: "",
+      graphClientId: "",
+      graphClientSecret: "",
+      graphSenderEmail: "",
       isEnabled: false,
     })
   } catch (error) {
@@ -35,21 +40,47 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json()
-    const { smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom, isEnabled } = body
+    const {
+      provider = "smtp",
+      smtpHost,
+      smtpPort,
+      smtpUser,
+      smtpPass,
+      smtpFrom,
+      graphTenantId,
+      graphClientId,
+      graphClientSecret,
+      graphSenderEmail,
+      isEnabled,
+    } = body
 
-    // Delete existing configs first
-    await prisma.emailConfig.deleteMany()
+    const existing = await prisma.emailConfig.findFirst()
 
-    const config = await prisma.emailConfig.create({
-      data: {
-        smtpHost,
-        smtpPort: parseInt(smtpPort),
-        smtpUser,
-        smtpPass,
-        smtpFrom,
-        isEnabled,
-      }
-    })
+    const dataToSave = {
+      provider: provider || "smtp",
+      smtpHost: smtpHost || "smtp.gmail.com",
+      smtpPort: parseInt(smtpPort) || 587,
+      smtpUser: smtpUser || "",
+      smtpPass: smtpPass || "",
+      smtpFrom: smtpFrom || "",
+      graphTenantId: graphTenantId || null,
+      graphClientId: graphClientId || null,
+      graphClientSecret: graphClientSecret || null,
+      graphSenderEmail: graphSenderEmail || null,
+      isEnabled: Boolean(isEnabled),
+    }
+
+    let config
+    if (existing) {
+      config = await prisma.emailConfig.update({
+        where: { id: existing.id },
+        data: dataToSave,
+      })
+    } else {
+      config = await prisma.emailConfig.create({
+        data: dataToSave,
+      })
+    }
 
     return NextResponse.json(config)
   } catch (error) {

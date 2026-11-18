@@ -176,33 +176,36 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-border">
-            <p className="text-xs text-muted-foreground text-center mb-4">
-              Demo Credentials
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="bg-muted/50 rounded p-2 text-center">
-                <p className="font-medium text-foreground">Admin</p>
-                <p className="text-muted-foreground truncate" title="admin@helpdesk.com">admin@helpdesk.com</p>
-                <p className="text-muted-foreground">admin123</p>
-              </div>
-              <div className="bg-muted/50 rounded p-2 text-center">
-                <p className="font-medium text-foreground">Admin Ticket</p>
-                <p className="text-muted-foreground truncate" title="adminticket@helpdesk.com">adminticket@helpdesk.com</p>
-                <p className="text-muted-foreground">adminticket123</p>
-              </div>
-              <div className="bg-muted/50 rounded p-2 text-center">
-                <p className="font-medium text-foreground">Project Manager</p>
-                <p className="text-muted-foreground truncate" title="pm1@helpdesk.com">pm1@helpdesk.com</p>
-                <p className="text-muted-foreground">pm123</p>
-              </div>
-              <div className="bg-muted/50 rounded p-2 text-center">
-                <p className="font-medium text-foreground">PIC / Teknisi</p>
-                <p className="text-muted-foreground truncate" title="pic1@helpdesk.com">pic1@helpdesk.com</p>
-                <p className="text-muted-foreground">pic123</p>
+          {/* Sembunyikan Demo Credentials di Production Mode */}
+          {process.env.NODE_ENV !== "production" && (
+            <div className="mt-8 pt-6 border-t border-border">
+              <p className="text-xs text-muted-foreground text-center mb-4">
+                Demo Credentials
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-muted/50 rounded p-2 text-center">
+                  <p className="font-medium text-foreground">Admin</p>
+                  <p className="text-muted-foreground truncate" title="admin@helpdesk.com">admin@helpdesk.com</p>
+                  <p className="text-muted-foreground">admin123</p>
+                </div>
+                <div className="bg-muted/50 rounded p-2 text-center">
+                  <p className="font-medium text-foreground">Admin Ticket</p>
+                  <p className="text-muted-foreground truncate" title="adminticket@helpdesk.com">adminticket@helpdesk.com</p>
+                  <p className="text-muted-foreground">adminticket123</p>
+                </div>
+                <div className="bg-muted/50 rounded p-2 text-center">
+                  <p className="font-medium text-foreground">Project Manager</p>
+                  <p className="text-muted-foreground truncate" title="pm1@helpdesk.com">pm1@helpdesk.com</p>
+                  <p className="text-muted-foreground">pm123</p>
+                </div>
+                <div className="bg-muted/50 rounded p-2 text-center">
+                  <p className="font-medium text-foreground">PIC / Teknisi</p>
+                  <p className="text-muted-foreground truncate" title="pic1@helpdesk.com">pic1@helpdesk.com</p>
+                  <p className="text-muted-foreground">pic123</p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

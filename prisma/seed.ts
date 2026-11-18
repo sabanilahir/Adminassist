@@ -51,7 +51,26 @@ async function main() {
 
   console.log("Users created");
 
-  // 2. Customers
+  // 2. SLA Policies
+  const defaultSla = await prisma.slaPolicy.upsert({
+    where: { name: "Standard SLA (Default)" },
+    update: {},
+    create: {
+      name: "Standard SLA (Default)",
+      description: "Kebijakan SLA standar sistem: High 4 Jam, Medium 24 Jam, Low 72 Jam.",
+      responseHoursHigh: 1,
+      resolutionHoursHigh: 4,
+      responseHoursMedium: 4,
+      resolutionHoursMedium: 24,
+      responseHoursLow: 8,
+      resolutionHoursLow: 72,
+      isDefault: true,
+    }
+  });
+
+  console.log("SLA Policies created");
+
+  // 3. Customers
   const cust1 = await prisma.customer.upsert({ 
     where: { email: "finance@acmecorp.com" }, 
     update: {}, 
@@ -66,7 +85,7 @@ async function main() {
 
   console.log("Customers created");
 
-  // 3. Contracts (Deklarasi contract1 dan contract2)
+  // 4. Contracts (Terkoneksi ke SLA Policy)
   const contract1 = await prisma.contract.upsert({
     where: { id: "contract-acme-001" },
     update: {},
@@ -80,6 +99,7 @@ async function main() {
       preventiveMandays: 10,
       customerId: cust1.id,
       projectManagerId: pm1.id,
+      slaPolicyId: defaultSla.id,
       pics: {
         connect: [{ id: pic1.id }, { id: pic2.id }]
       }
@@ -99,6 +119,7 @@ async function main() {
       preventiveMandays: 12,
       customerId: cust2.id,
       projectManagerId: pm1.id,
+      slaPolicyId: defaultSla.id,
       pics: {
         connect: [{ id: pic2.id }]
       }
@@ -107,7 +128,7 @@ async function main() {
 
   console.log("Contracts created");
 
-  // 4. Categories
+  // 5. Categories
   await prisma.category.upsert({ 
     where: { id: "cat-technical" }, 
     update: {}, 
@@ -134,7 +155,7 @@ async function main() {
 
   console.log("Categories created");
 
-  // 5. Tickets (Menggunakan variabel contract1.id yang sudah ada)
+  // 6. Tickets (Menggunakan variabel contract1.id yang sudah ada)
   await prisma.ticket.upsert({ 
     where: { trackingId: "TKT-001" },
     update: {},
@@ -147,7 +168,8 @@ async function main() {
       userId: user1.id, 
       contractId: contract1.id, 
       customerId: cust1.id,
-      categoryId: "cat-billing" 
+      categoryId: "cat-billing",
+      dueDate: new Date(Date.now() + 4 * 3600 * 1000), // 4 jam SLA
     } 
   });
 

@@ -30,6 +30,8 @@ import {
   FileText,
   CheckCircle2,
   XCircle,
+  Paperclip,
+  History,
 } from "lucide-react";
 import { NotApplicableButton } from "./not-applicable-button";
 import { rejectTicket } from "@/actions/ticket-actions";
@@ -510,6 +512,25 @@ export default function TicketDetailPage({
                 >
                   {ticket.priority} Priority
                 </Badge>
+                {ticket.dueDate && (
+                  <div className="flex items-center gap-1.5 text-xs mt-1">
+                    <Clock className="h-3.5 w-3.5 text-amber-600" />
+                    <span className="text-slate-500">Target SLA:</span>
+                    <span className="font-semibold text-slate-800">
+                      {new Date(ticket.dueDate).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    {ticket.slaBreached && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-700 font-bold ml-1">
+                        BREACHED
+                      </span>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -714,6 +735,32 @@ export default function TicketDetailPage({
           </div>
         </div>
 
+        {/* Attachments */}
+        {ticket.attachments?.length > 0 && (
+          <div className="space-y-2 pt-2">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Paperclip className="h-4 w-4" /> Lampiran Dokumen ({ticket.attachments.length})
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {ticket.attachments.map((url: string, idx: number) => {
+                const name = url.split("/").pop() || `Dokumen ${idx + 1}`;
+                return (
+                  <a
+                    key={idx}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center p-2.5 bg-muted/20 hover:bg-muted/40 border rounded text-xs font-medium text-slate-800 transition-colors"
+                  >
+                    <Paperclip className="h-3.5 w-3.5 mr-2 text-slate-400 shrink-0" />
+                    <span className="truncate">{name}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {(ticket.rootCause || ticket.resolution || ticket.mandaysSpent > 0) &&
           !isEditing && (
             <div className="space-y-4 pt-4 border-t">
@@ -842,6 +889,37 @@ export default function TicketDetailPage({
             </div>
           </div>
         </div>
+
+        {/* Audit Trail / Riwayat Aktivitas */}
+        {ticket.activities?.length > 0 && (
+          <div className="pt-6 border-t mt-6 space-y-3">
+            <h4 className="font-semibold flex items-center text-xs text-muted-foreground uppercase tracking-wider">
+              <History className="h-4 w-4 mr-2 text-slate-400" /> Riwayat Aktivitas & Perubahan
+            </h4>
+            <div className="relative pl-5 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+              {ticket.activities.map((act: any) => (
+                <div key={act.id} className="relative text-xs space-y-0.5">
+                  <div className="absolute -left-5 top-1 h-2 w-2 rounded-full bg-slate-800 border border-white" />
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-900">
+                      {act.action.replace("_", " ")}
+                      {act.user?.name && <span className="font-normal text-slate-500"> oleh {act.user.name}</span>}
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      {new Date(act.createdAt).toLocaleString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  {act.note && <p className="text-slate-600">{act.note}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

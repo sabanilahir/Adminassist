@@ -50,3 +50,9 @@ logs/
 # System files
 Thumbs.db
 desktop.ini
+
+
+# Storage & backups
+/storage/
+*.zip
+*.sql

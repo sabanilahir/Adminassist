@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { ArrowLeft, Loader2, UserCircle, Check, ChevronsUpDown, FileText, Calendar, User } from "lucide-react";
+import { ArrowLeft, Loader2, UserCircle, Check, ChevronsUpDown, FileText, Calendar, User, Paperclip, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function NewTicketForm({ categories }: { categories: any[] }) {
@@ -33,6 +33,8 @@ export function NewTicketForm({ categories }: { categories: any[] }) {
   // Tanggal Pelaporan (Default hari ini) & Nama Pelapor (Default contactName kontrak)
   const [reportedAt, setReportedAt] = useState(() => new Date().toISOString().split("T")[0]);
   const [reporterName, setReporterName] = useState("");
+  const [attachments, setAttachments] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   
   // UI State
   const [openCust, setOpenCust] = useState(false);
@@ -98,6 +100,35 @@ export function NewTicketForm({ categories }: { categories: any[] }) {
     setCreating(false);
   }
 
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const fd = new FormData();
+    Array.from(files).forEach((f) => fd.append("files", f));
+    setUploading(true);
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (res.ok) {
+        const d = await res.json();
+        const urls = d.urls || (d.url ? [d.url] : []);
+        setAttachments((prev) => [...prev, ...urls]);
+      } else {
+        const err = await res.json();
+        alert(err.error || "Gagal mengunggah file");
+      }
+    } catch {
+      alert("Terjadi kesalahan saat mengunggah file.");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  function handleRemoveAttachment(idx: number) {
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title || !desc || !cust || !contract) return;
@@ -120,7 +151,8 @@ export function NewTicketForm({ categories }: { categories: any[] }) {
         categoryId: category || undefined, 
         priority: "MEDIUM", // Priority otomatis diset default MEDIUM tanpa ditampilkan di form
         reporterName: reporterName.trim() || undefined,
-        reportedAt: reportedAt ? new Date(reportedAt).toISOString() : new Date().toISOString()
+        reportedAt: reportedAt ? new Date(reportedAt).toISOString() : new Date().toISOString(),
+        attachments
       };
       
       const r = await fetch("/api/tickets", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -269,6 +301,46 @@ export function NewTicketForm({ categories }: { categories: any[] }) {
             <p className="text-[11px] text-muted-foreground">Keterangan ini akan disertakan dalam detail deskripsi tiket.</p>
           </div>
         )}
+
+        
+        {/* LAMPIRAN FILE / DOKUMEN / GAMBAR */}
+        <div className="space-y-2">
+          <Label className="flex items-center justify-between">
+            <span className="flex items-center gap-1.5"><Paperclip className="h-4 w-4" /> Lampiran File (Opsional)</span>
+            <span className="text-[11px] text-muted-foreground">PNG, JPG, PDF, DOCX, ZIP (Maks 10MB)</span>
+          </Label>
+          <div className="flex items-center gap-2">
+            <Input
+              type="file"
+              multiple
+              accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.xlsx,.zip"
+              onChange={handleFileUpload}
+              disabled={uploading || loading}
+              className="cursor-pointer"
+            />
+            {uploading && <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />}
+          </div>
+
+          {attachments.length > 0 && (
+            <div className="space-y-1.5 pt-2">
+              {attachments.map((url, idx) => {
+                const name = url.split("/").pop() || `Lampiran ${idx + 1}`;
+                return (
+                  <div key={idx} className="flex items-center justify-between p-2 rounded bg-muted/30 border text-xs">
+                    <span className="truncate max-w-[85%]">{name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAttachment(idx)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         <Button type="submit" disabled={loading || !contract} className="w-full">{loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Create Ticket</Button>
       </form>

@@ -8,18 +8,19 @@ datasource db {
 }
 
 model User {
-  id               String     @id @default(cuid())
+  id               String           @id @default(cuid())
   name             String
-  email            String     @unique
+  email            String           @unique
   password         String?
-  role             Role       @default(USER)
-  createdAt        DateTime   @default(now())
+  role             Role             @default(USER)
+  createdAt        DateTime         @default(now())
   comments         Comment[]
-  managedContracts Contract[] @relation("ContractPM")
-  assigned         Ticket[]   @relation("AssignedPIC")
-  confirmedTickets Ticket[]   @relation("ConfirmedBy")
-  tickets          Ticket[]   @relation("UserTickets")
-  picContracts     Contract[] @relation("ContractPICs")
+  managedContracts Contract[]       @relation("ContractPM")
+  assigned         Ticket[]         @relation("AssignedPIC")
+  confirmedTickets Ticket[]         @relation("ConfirmedBy")
+  tickets          Ticket[]         @relation("UserTickets")
+  picContracts     Contract[]       @relation("ContractPICs")
+  activities       TicketActivity[]
 }
 
 model Customer {
@@ -37,27 +38,45 @@ model Customer {
   tickets      Ticket[]
 }
 
+model SlaPolicy {
+  id                    String     @id @default(cuid())
+  name                  String     @unique
+  description           String?
+  responseHoursHigh     Float      @default(1)
+  resolutionHoursHigh   Float      @default(4)
+  responseHoursMedium   Float      @default(4)
+  resolutionHoursMedium Float      @default(24)
+  responseHoursLow      Float      @default(8)
+  resolutionHoursLow    Float      @default(72)
+  isDefault             Boolean    @default(false)
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  contracts             Contract[]
+}
+
 model Contract {
-  id                String    @id @default(cuid())
+  id                String     @id @default(cuid())
   customerId        String
   contractNumber    String?
-  correctiveMandays Float     @default(0)
-  usedCorrective    Float     @default(0)
-  preventiveMandays Float     @default(0)
-  usedPreventive    Float     @default(0)
+  correctiveMandays Float      @default(0)
+  usedCorrective    Float      @default(0)
+  preventiveMandays Float      @default(0)
+  usedPreventive    Float      @default(0)
   projectManagerId  String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  slaPolicyId       String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
   contactEmail      String?
   contactName       String?
   contactPhone      String?
   endDate           DateTime?
   startDate         DateTime?
-  documentUrls      String[]  @default([])
-  customer          Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  projectManager    User?     @relation("ContractPM", fields: [projectManagerId], references: [id])
+  documentUrls      String[]   @default([])
+  customer          Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  projectManager    User?      @relation("ContractPM", fields: [projectManagerId], references: [id])
+  slaPolicy         SlaPolicy? @relation(fields: [slaPolicyId], references: [id])
   tickets           Ticket[]
-  pics              User[]    @relation("ContractPICs")
+  pics              User[]     @relation("ContractPICs")
 }
 
 model Category {
@@ -67,12 +86,12 @@ model Category {
 }
 
 model Ticket {
-  id              String    @id @default(cuid())
-  trackingId      String    @unique
+  id              String           @id @default(cuid())
+  trackingId      String           @unique
   title           String
   description     String
-  status          Status    @default(NEW)
-  priority        Priority  @default(MEDIUM)
+  status          Status           @default(NEW)
+  priority        Priority         @default(MEDIUM)
   userId          String
   contractId      String?
   categoryId      String?
@@ -81,24 +100,50 @@ model Ticket {
   rootCause       String?
   resolution      String?
   reference       String?
-  mandaysSpent    Float     @default(0)
+  mandaysSpent    Float            @default(0)
   mandaysType     String?
+  dueDate         DateTime?
+  slaBreached     Boolean          @default(false)
+  attachments     String[]         @default([])
   confirmedAt     DateTime?
   confirmedById   String?
   resolvedAt      DateTime?
   autoCloseAt     DateTime?
-  reportedAt      DateTime? @default(now())
+  reportedAt      DateTime?        @default(now())
   reporterName    String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   mandaysCategory String?
   comments        Comment[]
-  assignedTo      User?     @relation("AssignedPIC", fields: [assignedToId], references: [id])
-  category        Category? @relation(fields: [categoryId], references: [id])
-  confirmedBy     User?     @relation("ConfirmedBy", fields: [confirmedById], references: [id])
-  contract        Contract? @relation(fields: [contractId], references: [id])
-  customer        Customer? @relation(fields: [customerId], references: [id])
-  user            User      @relation("UserTickets", fields: [userId], references: [id])
+  activities      TicketActivity[]
+  assignedTo      User?            @relation("AssignedPIC", fields: [assignedToId], references: [id])
+  category        Category?        @relation(fields: [categoryId], references: [id])
+  confirmedBy     User?            @relation("ConfirmedBy", fields: [confirmedById], references: [id])
+  contract        Contract?        @relation(fields: [contractId], references: [id])
+  customer        Customer?        @relation(fields: [customerId], references: [id])
+  user            User             @relation("UserTickets", fields: [userId], references: [id])
+
+  @@index([status])
+  @@index([priority])
+  @@index([assignedToId])
+  @@index([createdAt])
+  @@index([customerId, status])
+}
+
+model TicketActivity {
+  id        String   @id @default(cuid())
+  ticketId  String
+  userId    String?
+  action    String
+  fromState String?
+  toState   String?
+  note      String?
+  createdAt DateTime @default(now())
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([ticketId])
+  @@index([createdAt])
 }
 
 model Comment {
@@ -123,20 +168,25 @@ model OAuthConfig {
 }
 
 model EmailConfig {
-  id             String   @id @default(cuid())
-  smtpHost       String   @default("smtp.gmail.com")
-  smtpPort       Int      @default(587)
-  smtpUser       String
-  smtpPass       String
-  smtpFrom       String
-  isEnabled      Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                String   @id @default(cuid())
+  provider          String   @default("smtp") // "smtp" or "graph"
+  smtpHost          String   @default("smtp.gmail.com")
+  smtpPort          Int      @default(587)
+  smtpUser          String   @default("")
+  smtpPass          String   @default("")
+  smtpFrom          String   @default("")
+  graphTenantId     String?
+  graphClientId     String?
+  graphClientSecret String?
+  graphSenderEmail  String?
+  isEnabled         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model NotificationTemplate {
   id        String   @id @default(cuid())
-  type      String   @unique  // "ticket_created", "status_changed"
+  type      String   @unique // "ticket_created", "status_changed"
   subject   String
   body      String   @db.Text
   createdAt DateTime @default(now())
