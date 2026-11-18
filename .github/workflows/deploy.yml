@@ -1,26 +1,32 @@
-name: PR Validation (CI)
+name: Deploy to Windows Server (CD)
 
 on:
   pull_request:
     branches:
       - master
     types:
-      - opened
-      - synchronize
-      - reopened
+      - closed
+  workflow_dispatch: # Memunculkan tombol "Run workflow"
 
 concurrency:
-  group: pr-validation-${{ github.ref }}
-  cancel-in-progress: true
+  group: production-deployment
+  cancel-in-progress: false
 
 jobs:
-  validate-build:
-    name: Build & Type Check
-    runs-on: ubuntu-latest
+  deploy:
+    name: Deploy to C:\Assists
+    # Berjalan jika tombol Run workflow ditekan ATAU jika PR di-merge ke master
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.merged == true)
+    runs-on: self-hosted
+    defaults:
+      run:
+        shell: powershell
 
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+        with:
+          ref: master
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -29,12 +35,72 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: |
+          Write-Host "Installing dependencies..."
+          npm ci
 
       - name: Generate Prisma Client
-        run: npx prisma generate
+        run: |
+          Write-Host "Generating Prisma client..."
+          npx prisma generate
 
-      - name: Build Next.js Application
+      - name: Build Next.js
         env:
           NODE_ENV: production
-        run: npm run build
+        run: |
+          Write-Host "Building Next.js application for production..."
+          npm run build
+
+      - name: Sync Files to C:\Assists
+        run: |
+          $target = "C:\Assists"
+          Write-Host "Syncing files to $target..."
+
+          if (-not (Test-Path -Path $target)) {
+            New-Item -ItemType Directory -Path $target -Force | Out-Null
+          }
+
+          $excludeDirs = @('.git', '.github', 'node_modules')
+          $excludeFiles = @('.env')
+
+          # Robocopy source files (kode keluar 0-7 adalah sukses)
+          & robocopy . $target /E /XD $excludeDirs /XF $excludeFiles /NP /R:2 /W:2
+          if ($LASTEXITCODE -ge 8) {
+            throw "Robocopy failed with exit code $LASTEXITCODE"
+          }
+          $global:LASTEXITCODE = 0
+
+          # Copy node_modules
+          & robocopy node_modules "$target\node_modules" /E /NP /R:2 /W:2
+          if ($LASTEXITCODE -ge 8) {
+            throw "Robocopy node_modules failed with exit code $LASTEXITCODE"
+          }
+          $global:LASTEXITCODE = 0
+
+          Write-Host "Files successfully synced to $target."
+
+      - name: Restart Application Process
+        run: |
+          $target = "C:\Assists"
+          Set-Location -Path $target
+
+          if (Get-Command pm2 -ErrorAction SilentlyContinue) {
+            Write-Host "PM2 detected. Restarting application..."
+            $pm2Status = pm2 describe adminassist 2>&1
+            if ($LASTEXITCODE -eq 0) {
+              pm2 restart adminassist
+            } else {
+              Write-Host "Starting adminassist with PM2 for the first time..."
+              pm2 start npm --name "adminassist" -- start
+            }
+            pm2 save
+          }
+          elseif (Get-Service -Name "AdminAssist" -ErrorAction SilentlyContinue) {
+            Write-Host "Restarting Windows Service: AdminAssist..."
+            Restart-Service -Name "AdminAssist"
+          }
+          else {
+            Write-Host "NOTICE: Neither PM2 nor Windows Service 'AdminAssist' found."
+          }
+
+          Write-Host "Deployment completed successfully!"
