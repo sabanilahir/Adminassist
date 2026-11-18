@@ -19,6 +19,7 @@ import {
   Settings,
   Bell,
   Clock,
+  Cloud,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,7 +44,8 @@ export function Sidebar() {
   ];
 
   const settingsItems = [
-    { href: "/admin/settings", label: "OAuth", icon: Settings, roles: ["ADMIN"], exact: true },
+    { href: "/admin/settings", label: "Overview", icon: Settings, roles: ["ADMIN"], exact: true },
+    { href: "/admin/settings/azure", label: "Azure 365", icon: Cloud, roles: ["ADMIN"], exact: true },
     { href: "/admin/settings/notifications", label: "Notifications", icon: Bell, roles: ["ADMIN"], exact: false },
   ];
 

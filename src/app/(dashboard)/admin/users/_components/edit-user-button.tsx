@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Edit, Loader2, X } from "lucide-react";
 
 interface EditUserButtonProps {
@@ -14,6 +20,7 @@ interface EditUserButtonProps {
     name: string;
     email: string;
     role: string;
+    userType?: string;
   };
 }
 
@@ -25,6 +32,7 @@ export function EditUserButton({ user }: EditUserButtonProps) {
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [role, setRole] = useState(user.role);
+  const [userType, setUserType] = useState(user.userType || "INTERNAL");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -34,8 +42,8 @@ export function EditUserButton({ user }: EditUserButtonProps) {
     setErrorMsg("");
 
     try {
-      const payload: any = { name, email, role };
-      if (password.trim() !== "") {
+      const payload: any = { name, email, role, userType };
+      if (userType === "INTERNAL" && password.trim() !== "") {
         payload.password = password;
       }
 
@@ -52,7 +60,7 @@ export function EditUserButton({ user }: EditUserButtonProps) {
 
       setIsOpen(false);
       setPassword("");
-      router.refresh(); // Refresh data pada Server Component
+      router.refresh();
     } catch (err: any) {
       setErrorMsg(err.message || "Terjadi kesalahan");
     } finally {
@@ -62,15 +70,21 @@ export function EditUserButton({ user }: EditUserButtonProps) {
 
   return (
     <>
-      <Button variant="ghost" size="icon" onClick={() => setIsOpen(true)} title="Edit User">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setIsOpen(true)}
+        title="Edit User"
+        className="h-8 w-8 text-slate-600 hover:text-slate-900"
+      >
         <Edit className="h-4 w-4" />
       </Button>
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-card w-full max-w-md rounded-lg border shadow-lg p-6 space-y-4">
+          <div className="bg-card w-full max-w-md rounded-lg border border-border shadow-lg p-6 space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
-              <h2 className="text-lg font-semibold">Edit User</h2>
+              <h2 className="text-base font-semibold">Edit User</h2>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
@@ -82,37 +96,60 @@ export function EditUserButton({ user }: EditUserButtonProps) {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {errorMsg && (
-                <div className="p-3 text-xs text-red-500 bg-red-500/10 rounded-md">
+                <div className="p-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-md">
                   {errorMsg}
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="edit-name" className="text-xs font-medium">
+                  Nama
+                </Label>
                 <Input
-                  id="name"
+                  id="edit-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  className="text-sm"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="edit-email" className="text-xs font-medium">
+                  Email
+                </Label>
                 <Input
-                  id="email"
+                  id="edit-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="text-sm"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="role">Role</Label>
+                <Label htmlFor="edit-userType" className="text-xs font-medium">
+                  Tipe User
+                </Label>
+                <Select value={userType} onValueChange={setUserType}>
+                  <SelectTrigger id="edit-userType" className="text-sm">
+                    <SelectValue placeholder="Pilih Tipe User" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="INTERNAL">Internal User</SelectItem>
+                    <SelectItem value="MICROSOFT_365">Microsoft 365 Account</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-role" className="text-xs font-medium">
+                  Role
+                </Label>
                 <Select value={role} onValueChange={setRole}>
-                  <SelectTrigger id="role">
+                  <SelectTrigger id="edit-role" className="text-sm">
                     <SelectValue placeholder="Pilih Role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -124,16 +161,28 @@ export function EditUserButton({ user }: EditUserButtonProps) {
                 </Select>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="password">Password Baru (Opsional)</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Kosongkan jika tidak ingin mengubah password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
+              {userType === "INTERNAL" ? (
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-password" className="text-xs font-medium">
+                    Password Baru (Opsional)
+                  </Label>
+                  <Input
+                    id="edit-password"
+                    type="password"
+                    placeholder="Kosongkan jika tidak ingin mengubah password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+              ) : (
+                <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-md text-xs text-slate-600">
+                  <p className="font-medium text-slate-800">Autentikasi Microsoft 365</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Password dikelola langsung oleh Microsoft 365 (Azure AD).
+                  </p>
+                </div>
+              )}
 
               <div className="flex justify-end gap-2 pt-2">
                 <Button
@@ -141,10 +190,15 @@ export function EditUserButton({ user }: EditUserButtonProps) {
                   variant="outline"
                   onClick={() => setIsOpen(false)}
                   disabled={loading}
+                  className="text-xs"
                 >
                   Batal
                 </Button>
-                <Button type="submit" disabled={loading}>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-slate-900 text-white hover:bg-slate-800 text-xs font-medium"
+                >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Simpan Perubahan
                 </Button>

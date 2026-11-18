@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getUsers } from "@/actions/user-actions";
+import { getUsers, deleteUser } from "@/actions/user-actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { AddUserForm } from "./_components/add-user-form";
-import { EditUserButton } from "./_components/edit-user-button"; // <-- 1. Import EditUserButton
+import { EditUserButton } from "./_components/edit-user-button";
 import { formatDate } from "@/lib/utils";
-import { Trash2 } from "lucide-react"; // Hapus import Edit yang tidak dipakai jika ingin
+import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default async function AdminUsersPage() {
   const session = await auth();
@@ -44,7 +44,7 @@ export default async function AdminUsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Users</h1>
-          <p className="text-muted-foreground mt-1">Manage system users and roles</p>
+          <p className="text-muted-foreground mt-1">Manage system users, authentication types, and roles</p>
         </div>
         <AddUserForm />
       </div>
@@ -55,6 +55,7 @@ export default async function AdminUsersPage() {
             <tr className="border-b bg-muted/50">
               <th className="h-12 px-4 text-left text-sm font-medium">Name</th>
               <th className="h-12 px-4 text-left text-sm font-medium">Email</th>
+              <th className="h-12 px-4 text-left text-sm font-medium">Tipe User</th>
               <th className="h-12 px-4 text-left text-sm font-medium">Role</th>
               <th className="h-12 px-4 text-left text-sm font-medium">Created</th>
               <th className="h-12 px-4 text-right text-sm font-medium">Actions</th>
@@ -66,17 +67,28 @@ export default async function AdminUsersPage() {
                 <td className="p-4 font-medium">{user.name}</td>
                 <td className="p-4 text-muted-foreground">{user.email}</td>
                 <td className="p-4">
+                  {user.userType === "MICROSOFT_365" ? (
+                    <div className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300">
+                      <span className="inline-grid grid-cols-2 gap-0.5 w-3 h-3 shrink-0">
+                        <span className="bg-[#f25022] rounded-[0.5px]"></span>
+                        <span className="bg-[#7fba00] rounded-[0.5px]"></span>
+                        <span className="bg-[#00a4ef] rounded-[0.5px]"></span>
+                        <span className="bg-[#ffb900] rounded-[0.5px]"></span>
+                      </span>
+                      <span>Microsoft 365</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground font-medium">
+                      Internal
+                    </span>
+                  )}
+                </td>
+                <td className="p-4">
                   <Badge variant={getRoleBadge(user.role)}>{getRoleLabel(user.role)}</Badge>
                 </td>
                 <td className="p-4 text-muted-foreground">{formatDate(user.createdAt)}</td>
                 <td className="p-4 text-right space-x-2">
-                  {/* 2. Ganti tombol statis dengan EditUserButton */}
                   <EditUserButton user={user} />
-                  
-                  {/* Contoh tombol delete */}
-                  <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600" title="Delete User">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </td>
               </tr>
             ))}

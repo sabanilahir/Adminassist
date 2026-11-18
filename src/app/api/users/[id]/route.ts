@@ -23,6 +23,7 @@ export async function GET(
         name: true,
         email: true,
         role: true,
+        userType: true,
         createdAt: true,
       },
     });
@@ -52,12 +53,13 @@ export async function PATCH(
     const { id } = await context.params; // <-- Await params di sini
 
     const body = await request.json();
-    const { name, email, role, password } = body;
+    const { name, email, role, userType, password } = body;
 
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
     if (role !== undefined) updateData.role = role;
+    if (userType !== undefined) updateData.userType = userType;
 
     // Jika password diisi, hash password barunya
     if (password && password.trim() !== "") {

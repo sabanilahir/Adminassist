@@ -13,6 +13,7 @@ model User {
   email            String           @unique
   password         String?
   role             Role             @default(USER)
+  userType         UserType         @default(INTERNAL)
   createdAt        DateTime         @default(now())
   comments         Comment[]
   managedContracts Contract[]       @relation("ContractPM")
@@ -223,4 +224,9 @@ enum Status {
   CLOSED
   OPEN
   REJECTED
+}
+
+enum UserType {
+  INTERNAL
+  MICROSOFT_365
 }
