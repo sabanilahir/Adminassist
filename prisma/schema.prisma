@@ -42,6 +42,10 @@ model SlaPolicy {
   id                    String     @id @default(cuid())
   name                  String     @unique
   description           String?
+  criteria              String?    @db.Text
+  criteriaHigh          String?    @db.Text
+  criteriaMedium        String?    @db.Text
+  criteriaLow           String?    @db.Text
   responseHoursHigh     Float      @default(1)
   resolutionHoursHigh   Float      @default(4)
   responseHoursMedium   Float      @default(4)

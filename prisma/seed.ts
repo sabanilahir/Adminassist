@@ -54,10 +54,19 @@ async function main() {
   // 2. SLA Policies
   const defaultSla = await prisma.slaPolicy.upsert({
     where: { name: "Standard SLA (Default)" },
-    update: {},
+    update: {
+      criteriaHigh: "Sistem/server utama down total, transaksi bisnis terhenti, data kritis terancam, tidak ada alternatif.",
+      criteriaMedium: "Modul sekunder terganggu, performa lambat, ada alternatif solusi sementara (workaround).",
+      criteriaLow: "Pertanyaan operasional umum, permohonan informasi/data teknis, keluhan kosmetik UI minor.",
+      criteria: "Berlaku untuk jam operasional standar Senin s/d Jumat 08:30 - 17:30 WIB.",
+    },
     create: {
       name: "Standard SLA (Default)",
       description: "Kebijakan SLA standar sistem: High 4 Jam, Medium 24 Jam, Low 72 Jam.",
+      criteriaHigh: "Sistem/server utama down total, transaksi bisnis terhenti, data kritis terancam, tidak ada alternatif.",
+      criteriaMedium: "Modul sekunder terganggu, performa lambat, ada alternatif solusi sementara (workaround).",
+      criteriaLow: "Pertanyaan operasional umum, permohonan informasi/data teknis, keluhan kosmetik UI minor.",
+      criteria: "Berlaku untuk jam operasional standar Senin s/d Jumat 08:30 - 17:30 WIB.",
       responseHoursHigh: 1,
       resolutionHoursHigh: 4,
       responseHoursMedium: 4,

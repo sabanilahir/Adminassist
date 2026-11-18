@@ -32,6 +32,7 @@ import {
   CheckCircle,
   Loader2,
   FileCheck2,
+  HelpCircle,
 } from "lucide-react";
 
 export default function SlaManagementPage() {
@@ -49,6 +50,10 @@ export default function SlaManagementPage() {
   const [form, setForm] = useState({
     name: "",
     description: "",
+    criteria: "",
+    criteriaHigh: "",
+    criteriaMedium: "",
+    criteriaLow: "",
     responseHoursHigh: 1,
     resolutionHoursHigh: 4,
     responseHoursMedium: 4,
@@ -79,6 +84,10 @@ export default function SlaManagementPage() {
     setForm({
       name: "",
       description: "",
+      criteria: "",
+      criteriaHigh: "Sistem / server utama down total, transaksi bisnis terhenti, data kritis terancam.",
+      criteriaMedium: "Modul sekunder terganggu, performa lambat, ada alternatif solusi sementara (workaround).",
+      criteriaLow: "Pertanyaan operasional, permohonan informasi teknis, bug kosmetik / tampilan minor.",
       responseHoursHigh: 1,
       resolutionHoursHigh: 4,
       responseHoursMedium: 4,
@@ -96,6 +105,10 @@ export default function SlaManagementPage() {
     setForm({
       name: policy.name,
       description: policy.description || "",
+      criteria: policy.criteria || "",
+      criteriaHigh: policy.criteriaHigh || "",
+      criteriaMedium: policy.criteriaMedium || "",
+      criteriaLow: policy.criteriaLow || "",
       responseHoursHigh: policy.responseHoursHigh,
       resolutionHoursHigh: policy.resolutionHoursHigh,
       responseHoursMedium: policy.responseHoursMedium,
@@ -170,7 +183,7 @@ export default function SlaManagementPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -184,7 +197,7 @@ export default function SlaManagementPage() {
             <Clock className="h-6 w-6 text-primary" /> Master Service Level Agreement (SLA)
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Konfigurasi target resolusi dan respon per prioritas tiket yang berkorelasi dengan Kontrak Customer.
+            Konfigurasi target waktu resolusi, respon, dan kriteria klasifikasi issue per prioritas untuk Kontrak Customer.
           </p>
         </div>
 
@@ -212,85 +225,124 @@ export default function SlaManagementPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50/80 border-b text-xs font-semibold uppercase text-slate-600">
                 <tr>
-                  <th className="px-5 py-3.5">Nama & Deskripsi</th>
-                  <th className="px-4 py-3.5 text-center">Prioritas HIGH</th>
-                  <th className="px-4 py-3.5 text-center">Prioritas MEDIUM</th>
-                  <th className="px-4 py-3.5 text-center">Prioritas LOW</th>
-                  <th className="px-4 py-3.5 text-center">Terkait Kontrak</th>
-                  <th className="px-5 py-3.5 text-right">Aksi</th>
+                  <th className="px-5 py-3.5 w-60">Nama & Cakupan</th>
+                  <th className="px-4 py-3.5 text-center w-52">Target Waktu Resolusi</th>
+                  <th className="px-5 py-3.5">Kriteria SLA (Keterangan Kasus / Issue)</th>
+                  <th className="px-4 py-3.5 text-center w-32">Kontrak</th>
+                  <th className="px-5 py-3.5 text-right w-36">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {policies.map((policy) => (
                   <tr key={policy.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-5 py-4">
+                    {/* Nama & Deskripsi */}
+                    <td className="px-5 py-4 align-top">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-slate-900">{policy.name}</span>
                         {policy.isDefault && (
-                          <Badge variant="outline" className="text-emerald-700 bg-emerald-50 border-emerald-200 text-xs">
+                          <Badge variant="outline" className="text-emerald-700 bg-emerald-50 border-emerald-200 text-xs shrink-0">
                             Default
                           </Badge>
                         )}
                       </div>
                       {policy.description && (
-                        <p className="text-xs text-slate-500 mt-1 max-w-sm line-clamp-1">
+                        <p className="text-xs text-slate-500 mt-1 max-w-xs">
                           {policy.description}
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <div className="inline-block text-xs font-mono">
-                        <span className="font-semibold text-red-600">{policy.resolutionHoursHigh}j Resolve</span>
-                        <div className="text-slate-400">({policy.responseHoursHigh}j Respon)</div>
+
+                    {/* Target Waktu */}
+                    <td className="px-4 py-4 align-top">
+                      <div className="space-y-1.5 text-xs font-mono">
+                        <div className="flex items-center justify-between bg-red-50/60 px-2 py-1 rounded border border-red-100">
+                          <span className="font-bold text-red-700">HIGH</span>
+                          <span className="text-slate-800 font-semibold">{policy.resolutionHoursHigh}j Resolve</span>
+                        </div>
+                        <div className="flex items-center justify-between bg-amber-50/60 px-2 py-1 rounded border border-amber-100">
+                          <span className="font-bold text-amber-700">MED</span>
+                          <span className="text-slate-800 font-semibold">{policy.resolutionHoursMedium}j Resolve</span>
+                        </div>
+                        <div className="flex items-center justify-between bg-slate-50 px-2 py-1 rounded border border-slate-200">
+                          <span className="font-bold text-slate-700">LOW</span>
+                          <span className="text-slate-800 font-semibold">{policy.resolutionHoursLow}j Resolve</span>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <div className="inline-block text-xs font-mono">
-                        <span className="font-semibold text-amber-600">{policy.resolutionHoursMedium}j Resolve</span>
-                        <div className="text-slate-400">({policy.responseHoursMedium}j Respon)</div>
+
+                    {/* Kolom Kriteria SLA (Keterangan Issue) */}
+                    <td className="px-5 py-4 align-top">
+                      <div className="space-y-2 text-xs">
+                        {policy.criteriaHigh && (
+                          <div className="space-y-0.5">
+                            <span className="font-semibold text-red-600 block">Kriteria HIGH:</span>
+                            <p className="text-slate-700 leading-relaxed bg-slate-50 p-1.5 rounded border border-slate-100">
+                              {policy.criteriaHigh}
+                            </p>
+                          </div>
+                        )}
+                        {policy.criteriaMedium && (
+                          <div className="space-y-0.5">
+                            <span className="font-semibold text-amber-600 block">Kriteria MEDIUM:</span>
+                            <p className="text-slate-700 leading-relaxed bg-slate-50 p-1.5 rounded border border-slate-100">
+                              {policy.criteriaMedium}
+                            </p>
+                          </div>
+                        )}
+                        {policy.criteriaLow && (
+                          <div className="space-y-0.5">
+                            <span className="font-semibold text-slate-700 block">Kriteria LOW:</span>
+                            <p className="text-slate-700 leading-relaxed bg-slate-50 p-1.5 rounded border border-slate-100">
+                              {policy.criteriaLow}
+                            </p>
+                          </div>
+                        )}
+                        {!policy.criteriaHigh && !policy.criteriaMedium && !policy.criteriaLow && (
+                          <div className="text-slate-400 italic text-[11px] py-1">
+                            {policy.criteria || "Belum ada rincian kriteria issue."}
+                          </div>
+                        )}
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <div className="inline-block text-xs font-mono">
-                        <span className="font-semibold text-slate-700">{policy.resolutionHoursLow}j Resolve</span>
-                        <div className="text-slate-400">({policy.responseHoursLow}j Respon)</div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className="inline-flex items-center gap-1 text-xs text-slate-600 font-medium">
+
+                    {/* Terkait Kontrak */}
+                    <td className="px-4 py-4 text-center align-top">
+                      <span className="inline-flex items-center gap-1 text-xs text-slate-600 font-medium mt-1">
                         <FileCheck2 className="h-3.5 w-3.5 text-slate-400" />
-                        {policy._count.contracts} Kontrak
+                        {policy._count?.contracts || 0} Kontrak
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+
+                    {/* Aksi */}
+                    <td className="px-5 py-4 text-right align-top">
+                      <div className="flex flex-col gap-1 items-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-slate-600 hover:text-slate-900"
+                          onClick={() => handleOpenEdit(policy)}
+                        >
+                          <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit SLA
+                        </Button>
                         {!policy.isDefault && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 px-2 text-xs text-slate-600 hover:text-emerald-600"
+                            className="h-7 px-2 text-xs text-slate-500 hover:text-emerald-600"
                             onClick={() => handleSetDefault(policy.id)}
                             title="Tetapkan sebagai Default"
                           >
                             <CheckCircle className="h-3.5 w-3.5 mr-1" /> Set Default
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2 text-xs text-slate-600 hover:text-slate-900"
-                          onClick={() => handleOpenEdit(policy)}
-                        >
-                          <Edit2 className="h-3.5 w-3.5 mr-1" /> Edit
-                        </Button>
-                        {!policy.isDefault && policy._count.contracts === 0 && (
+                        {!policy.isDefault && (policy._count?.contracts || 0) === 0 && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 px-2 text-xs text-red-600 hover:bg-red-50"
+                            className="h-7 px-2 text-xs text-red-600 hover:bg-red-50"
                             onClick={() => handleDelete(policy.id)}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-3.5 w-3.5 mr-1" /> Hapus
                           </Button>
                         )}
                       </div>
@@ -305,10 +357,10 @@ export default function SlaManagementPage() {
 
       {/* Modal Dialog Create/Edit */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingId ? "Edit Kebijakan SLA" : "Tambah Kebijakan SLA Baru"}
+              {editingId ? "Edit Kebijakan & Kriteria SLA" : "Tambah Kebijakan SLA Baru"}
             </DialogTitle>
           </DialogHeader>
 
@@ -319,31 +371,33 @@ export default function SlaManagementPage() {
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">
-                Nama Kebijakan SLA <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                placeholder="Contoh: Gold SLA 24/7 atau SLA Suzuki"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">
+                  Nama Kebijakan SLA <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  placeholder="Contoh: Gold SLA 24/7 atau SLA Suzuki"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Cakupan / Deskripsi Singkat</Label>
+                <Input
+                  placeholder="Contoh: SLA untuk seluruh sistem backend & database"
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Deskripsi</Label>
-              <Textarea
-                placeholder="Penjelasan cakupan atau ketentuan SLA..."
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                rows={2}
-              />
-            </div>
-
+            {/* Target Waktu */}
             <div className="border rounded-md p-3.5 space-y-3 bg-slate-50/50">
               <span className="text-xs font-semibold text-slate-800 uppercase tracking-wider block">
-                Target Waktu (Dalam Jam Kerja)
+                1. Target Waktu Resolusi & Respon (Jam Kerja)
               </span>
 
               {/* High */}
@@ -431,6 +485,60 @@ export default function SlaManagementPage() {
               </div>
             </div>
 
+            {/* Bagian Kriteria SLA (Keterangan Issue per Kriteria) */}
+            <div className="border rounded-md p-3.5 space-y-3 bg-white">
+              <span className="text-xs font-semibold text-slate-800 uppercase tracking-wider block">
+                2. Kriteria Kasus / Laporan Masuk (Kriteria SLA)
+              </span>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-red-600 flex items-center gap-1">
+                  Kriteria Kasus Prioritas HIGH <span className="text-slate-400 font-normal">(Kritis)</span>
+                </Label>
+                <Textarea
+                  placeholder="Contoh: Server/layanan utama down total, transaksi finansial gagal, kebocoran data, tidak ada alternatif operasional..."
+                  value={form.criteriaHigh}
+                  onChange={(e) => setForm({ ...form, criteriaHigh: e.target.value })}
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-amber-600 flex items-center gap-1">
+                  Kriteria Kasus Prioritas MEDIUM <span className="text-slate-400 font-normal">(Sedang)</span>
+                </Label>
+                <Textarea
+                  placeholder="Contoh: Modul non-kritis mengalami error, penurunan performa sistem, kendala parsial yang memiliki alternatif solusi sementara..."
+                  value={form.criteriaMedium}
+                  onChange={(e) => setForm({ ...form, criteriaMedium: e.target.value })}
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                  Kriteria Kasus Prioritas LOW <span className="text-slate-400 font-normal">(Rendah / Minor)</span>
+                </Label>
+                <Textarea
+                  placeholder="Contoh: Permintaan informasi teknis, pertanyaan panduan penggunaan, perbaikan tata letak/UI kosmetik minor..."
+                  value={form.criteriaLow}
+                  onChange={(e) => setForm({ ...form, criteriaLow: e.target.value })}
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-1.5 pt-1">
+                <Label className="text-xs font-semibold text-slate-600">
+                  Catatan / Ketentuan Umum Tambahan (Opsional)
+                </Label>
+                <Input
+                  placeholder="Contoh: Jam kerja dihitung Senin - Jumat 08:30 s/d 17:30 WIB"
+                  value={form.criteria}
+                  onChange={(e) => setForm({ ...form, criteria: e.target.value })}
+                />
+              </div>
+            </div>
+
             <div className="flex items-center space-x-2 pt-1">
               <input
                 type="checkbox"
@@ -440,7 +548,7 @@ export default function SlaManagementPage() {
                 className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
               />
               <Label htmlFor="isDefault" className="text-xs text-slate-700 cursor-pointer">
-                Jadikan kebijakan default (digunakan otomatis jika kontrak tidak menentukan SLA)
+                Jadikan kebijakan default sistem (berlaku otomatis jika kontrak tidak menentukan SLA khusus)
               </Label>
             </div>
 
@@ -455,7 +563,7 @@ export default function SlaManagementPage() {
               </Button>
               <Button type="submit" disabled={saving} className="bg-slate-900 text-white hover:bg-slate-800">
                 {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {editingId ? "Simpan Perubahan" : "Buat SLA Policy"}
+                {editingId ? "Simpan Perubahan SLA" : "Buat SLA Policy"}
               </Button>
             </DialogFooter>
           </form>

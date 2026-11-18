@@ -20,6 +20,10 @@ export async function getSlaPolicies() {
 export async function createSlaPolicy(data: {
   name: string;
   description?: string;
+  criteria?: string;
+  criteriaHigh?: string;
+  criteriaMedium?: string;
+  criteriaLow?: string;
   responseHoursHigh: number;
   resolutionHoursHigh: number;
   responseHoursMedium: number;
@@ -50,6 +54,10 @@ export async function createSlaPolicy(data: {
       data: {
         name: data.name.trim(),
         description: data.description?.trim() || null,
+        criteria: data.criteria?.trim() || null,
+        criteriaHigh: data.criteriaHigh?.trim() || null,
+        criteriaMedium: data.criteriaMedium?.trim() || null,
+        criteriaLow: data.criteriaLow?.trim() || null,
         responseHoursHigh: Number(data.responseHoursHigh) || 1,
         resolutionHoursHigh: Number(data.resolutionHoursHigh) || 4,
         responseHoursMedium: Number(data.responseHoursMedium) || 4,
@@ -77,6 +85,10 @@ export async function updateSlaPolicy(
   data: {
     name: string;
     description?: string;
+    criteria?: string;
+    criteriaHigh?: string;
+    criteriaMedium?: string;
+    criteriaLow?: string;
     responseHoursHigh: number;
     resolutionHoursHigh: number;
     responseHoursMedium: number;
@@ -104,6 +116,10 @@ export async function updateSlaPolicy(
       data: {
         name: data.name.trim(),
         description: data.description?.trim() || null,
+        criteria: data.criteria?.trim() || null,
+        criteriaHigh: data.criteriaHigh?.trim() || null,
+        criteriaMedium: data.criteriaMedium?.trim() || null,
+        criteriaLow: data.criteriaLow?.trim() || null,
         responseHoursHigh: Number(data.responseHoursHigh),
         resolutionHoursHigh: Number(data.resolutionHoursHigh),
         responseHoursMedium: Number(data.responseHoursMedium),
