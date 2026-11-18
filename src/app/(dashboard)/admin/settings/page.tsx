@@ -119,7 +119,7 @@ export default function AdminSettingsPage() {
           </Card>
         </Link>
 
-        <Link href="/admin/settings/sla">
+        <Link href="/sla">
           <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg flex items-center gap-2">

@@ -33,6 +33,7 @@ export function Sidebar() {
   const menuItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["USER", "PIC", "PROJECT_MANAGER", "ADMIN", "ADMIN_TICKET"] },
     { href: "/tickets", label: "Tickets", icon: Ticket, roles: ["ADMIN", "ADMIN_TICKET"] },
+    { href: "/sla", label: "SLA Policy", icon: Clock, roles: ["USER", "PIC", "PROJECT_MANAGER", "ADMIN", "ADMIN_TICKET"] },
     { href: "/inbox", label: "Inbox", icon: Inbox, roles: ["PIC", "PROJECT_MANAGER"] },
     { href: "/reports", label: "Reports", icon: FileText, roles: ["ADMIN", "PROJECT_MANAGER"] },
     { href: "/admin/users", label: "Users", icon: Users, roles: ["ADMIN"] },
@@ -44,7 +45,6 @@ export function Sidebar() {
   const settingsItems = [
     { href: "/admin/settings", label: "OAuth", icon: Settings, roles: ["ADMIN"], exact: true },
     { href: "/admin/settings/notifications", label: "Notifications", icon: Bell, roles: ["ADMIN"], exact: false },
-    { href: "/admin/settings/sla", label: "SLA Policy", icon: Clock, roles: ["ADMIN", "ADMIN_TICKET"], exact: false },
   ];
 
   // Filter menu berdasarkan role

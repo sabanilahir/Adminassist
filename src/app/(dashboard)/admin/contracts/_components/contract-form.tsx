@@ -242,7 +242,7 @@ export function ContractForm({ contract, onSuccess, isOpen, onClose }: any) {
             <div className="flex items-center justify-between">
               <Label className="text-xs font-semibold">Service Level Agreement (SLA) Policy</Label>
               <Link
-                href="/admin/settings/sla"
+                href="/sla"
                 target="_blank"
                 className="text-[11px] text-primary hover:underline font-medium flex items-center gap-1"
                 title="Buka halaman manajemen master SLA di tab baru untuk membuat atau mengubah kebijakan SLA"

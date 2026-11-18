@@ -95,8 +95,8 @@ export async function createSlaPolicy(data: {
   isDefault?: boolean;
 }) {
   const session = await auth();
-  if (!session || (session.user.role !== "ADMIN" && session.user.role !== "ADMIN_TICKET")) {
-    return { error: "Akses ditolak: Hanya Admin yang dapat mengelola SLA." };
+  if (!session || session.user.role !== "ADMIN") {
+    return { error: "Akses ditolak: Hanya Sistem Administrator yang dapat mengelola SLA." };
   }
 
   if (!data.name || data.name.trim() === "") {
@@ -130,6 +130,7 @@ export async function createSlaPolicy(data: {
       },
     });
 
+    revalidatePath("/sla");
     revalidatePath("/admin/settings/sla");
     revalidatePath("/admin/contracts");
     return { success: true, policy };
@@ -161,8 +162,8 @@ export async function updateSlaPolicy(
   }
 ) {
   const session = await auth();
-  if (!session || (session.user.role !== "ADMIN" && session.user.role !== "ADMIN_TICKET")) {
-    return { error: "Akses ditolak: Hanya Admin yang dapat mengelola SLA." };
+  if (!session || session.user.role !== "ADMIN") {
+    return { error: "Akses ditolak: Hanya Sistem Administrator yang dapat mengelola SLA." };
   }
 
   try {
@@ -192,6 +193,7 @@ export async function updateSlaPolicy(
       },
     });
 
+    revalidatePath("/sla");
     revalidatePath("/admin/settings/sla");
     revalidatePath("/admin/contracts");
     return { success: true, policy };
@@ -228,6 +230,7 @@ export async function deleteSlaPolicy(id: string) {
 
     await prisma.slaPolicy.delete({ where: { id } });
 
+    revalidatePath("/sla");
     revalidatePath("/admin/settings/sla");
     revalidatePath("/admin/contracts");
     return { success: true };
@@ -255,6 +258,7 @@ export async function setDefaultSlaPolicy(id: string) {
       }),
     ]);
 
+    revalidatePath("/sla");
     revalidatePath("/admin/settings/sla");
     return { success: true };
   } catch (error) {
