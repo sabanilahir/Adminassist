@@ -10,6 +10,7 @@ import {
   updateSlaPolicy,
   deleteSlaPolicy,
   setDefaultSlaPolicy,
+  getContractsBySlaPolicy,
 } from "@/actions/sla-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,8 @@ import {
   Loader2,
   FileCheck2,
   HelpCircle,
+  FileText,
+  Building,
 } from "lucide-react";
 
 export default function SlaManagementPage() {
@@ -46,6 +49,27 @@ export default function SlaManagementPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Modal Kontrak Terkait
+  const [contractModalOpen, setContractModalOpen] = useState(false);
+  const [selectedPolicyForContracts, setSelectedPolicyForContracts] = useState<any>(null);
+  const [associatedContracts, setAssociatedContracts] = useState<any[]>([]);
+  const [loadingContracts, setLoadingContracts] = useState(false);
+
+  async function handleOpenContractsModal(policy: any) {
+    setSelectedPolicyForContracts(policy);
+    setContractModalOpen(true);
+    setLoadingContracts(true);
+    try {
+      const contracts = await getContractsBySlaPolicy(policy.id);
+      setAssociatedContracts(contracts);
+    } catch (err) {
+      console.error("Gagal memuat kontrak terkait SLA", err);
+      setAssociatedContracts([]);
+    } finally {
+      setLoadingContracts(false);
+    }
+  }
 
   const [form, setForm] = useState({
     name: "",
@@ -305,12 +329,19 @@ export default function SlaManagementPage() {
                       </div>
                     </td>
 
-                    {/* Terkait Kontrak */}
+                    {/* Terkait Kontrak (Clickable) */}
                     <td className="px-4 py-4 text-center align-top">
-                      <span className="inline-flex items-center gap-1 text-xs text-slate-600 font-medium mt-1">
-                        <FileCheck2 className="h-3.5 w-3.5 text-slate-400" />
-                        {policy._count?.contracts || 0} Kontrak
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenContractsModal(policy)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors border border-slate-200/80 cursor-pointer shadow-xs group"
+                        title="Klik untuk melihat daftar rincian kontrak yang menggunakan kebijakan SLA ini"
+                      >
+                        <FileCheck2 className="h-3.5 w-3.5 text-slate-500 group-hover:text-primary transition-colors" />
+                        <span className="font-semibold underline decoration-slate-300 underline-offset-2">
+                          {policy._count?.contracts || 0} Kontrak
+                        </span>
+                      </button>
                     </td>
 
                     {/* Aksi */}
@@ -567,6 +598,91 @@ export default function SlaManagementPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Page / Dialog Daftar Kontrak Terkait */}
+      <Dialog open={contractModalOpen} onOpenChange={setContractModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <FileCheck2 className="h-5 w-5 text-primary" />
+              Daftar Kontrak — {selectedPolicyForContracts?.name}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              {selectedPolicyForContracts?.isDefault
+                ? "Menampilkan kontrak yang memilih kebijakan ini secara spesifik maupun yang menggunakan default sistem (tanpa custom SLA)."
+                : `Menampilkan semua kontrak customer yang terhubung secara spesifik dengan kebijakan ${selectedPolicyForContracts?.name}.`}
+            </p>
+          </DialogHeader>
+
+          <div className="py-2">
+            {loadingContracts ? (
+              <div className="flex h-44 items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : associatedContracts.length === 0 ? (
+              <div className="p-8 text-center space-y-2 border rounded-lg bg-slate-50/50">
+                <FileText className="h-8 w-8 text-muted-foreground mx-auto" />
+                <p className="text-sm font-medium text-slate-800">Belum ada kontrak yang menggunakan SLA ini</p>
+                <p className="text-xs text-slate-500">
+                  Anda dapat mengaitkan SLA ini melalui form Edit Kontrak pada menu Contracts.
+                </p>
+              </div>
+            ) : (
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b font-semibold text-slate-600 uppercase">
+                    <tr>
+                      <th className="px-4 py-3">No. Kontrak</th>
+                      <th className="px-4 py-3">Customer</th>
+                      <th className="px-4 py-3">Project Manager</th>
+                      <th className="px-4 py-3">Periode Kontrak</th>
+                      <th className="px-4 py-3 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {associatedContracts.map((c: any) => (
+                      <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-slate-900">
+                          {c.contractNumber || "Tanpa Nomor"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="font-semibold text-slate-900 block">{c.customer?.name}</span>
+                          <span className="text-[11px] text-slate-500 font-mono">{c.customer?.customerCode}</span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-700">
+                          {c.projectManager?.name || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {c.startDate ? new Date(c.startDate).toLocaleDateString("id-ID") : "-"} s/d{" "}
+                          {c.endDate ? new Date(c.endDate).toLocaleDateString("id-ID") : "-"}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Link
+                            href="/admin/contracts"
+                            className="text-primary hover:underline font-semibold"
+                            onClick={() => setContractModalOpen(false)}
+                          >
+                            Buka Kontrak
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex items-center justify-between sm:justify-between pt-2">
+            <span className="text-xs text-muted-foreground">
+              Total {associatedContracts.length} kontrak terikat
+            </span>
+            <Button variant="outline" size="sm" onClick={() => setContractModalOpen(false)}>
+              Tutup
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

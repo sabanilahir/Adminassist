@@ -7,13 +7,75 @@ export async function getSlaPolicies() {
   const session = await auth();
   if (!session) throw new Error("Unauthorized");
 
-  return prisma.slaPolicy.findMany({
+  const policies = await prisma.slaPolicy.findMany({
     include: {
       _count: {
         select: { contracts: true },
       },
     },
     orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+  });
+
+  // Untuk policy isDefault, hitung juga kontrak yang slaPolicyId-nya null (karena otomatis mengikuti default SLA)
+  const unassignedCount = await prisma.contract.count({
+    where: { slaPolicyId: null },
+  });
+
+  return policies.map((p) => {
+    if (p.isDefault) {
+      return {
+        ...p,
+        _count: {
+          contracts: p._count.contracts + unassignedCount,
+        },
+      };
+    }
+    return p;
+  });
+}
+
+export async function getContractsBySlaPolicy(slaPolicyId: string) {
+  const session = await auth();
+  if (!session) throw new Error("Unauthorized");
+
+  const policy = await prisma.slaPolicy.findUnique({
+    where: { id: slaPolicyId },
+    select: { id: true, name: true, isDefault: true },
+  });
+
+  if (!policy) return [];
+
+  const where = policy.isDefault
+    ? {
+        OR: [{ slaPolicyId: policy.id }, { slaPolicyId: null }],
+      }
+    : { slaPolicyId: policy.id };
+
+  return prisma.contract.findMany({
+    where,
+    select: {
+      id: true,
+      contractNumber: true,
+      startDate: true,
+      endDate: true,
+      contactName: true,
+      contactEmail: true,
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          company: true,
+          customerCode: true,
+        },
+      },
+      projectManager: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
   });
 }
 
