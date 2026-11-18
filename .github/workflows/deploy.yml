@@ -3,8 +3,8 @@ name: Deploy to Windows Server (CD)
 on:
   push:
     branches:
-      - master # Otomatis jalan setiap kali ada merge ke branch master!
-  workflow_dispatch: # Tombol manual tetap ada jika sewaktu-waktu ingin redeploy
+      - master
+  workflow_dispatch:
 
 concurrency:
   group: production-deployment
@@ -51,7 +51,7 @@ jobs:
 
       - name: Sync Database Schema (Auto Migrate)
         run: |
-          Write-Host "Updating database PostgreSQL schema..."
+          Write-Host "Updating PostgreSQL database schema..."
           npx prisma db push --accept-data-loss
 
       - name: Build Next.js
@@ -61,33 +61,44 @@ jobs:
           Write-Host "Building Next.js application for production..."
           npm run build
 
+      - name: Stop Old Application Process
+        run: |
+          Write-Host "Stopping old node process to release file locks..."
+          if (Get-Command pm2 -ErrorAction SilentlyContinue) {
+            pm2 stop adminassist 2>&1 | Out-Null
+          }
+          # Hentikan node agar file DLL/binary tidak terkunci
+          Stop-Process -Name node -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 2
+
       - name: Sync Files to C:\Assists\source\adminassist
         run: |
           $target = "C:\Assists\source\adminassist"
-          Write-Host "Syncing files to $target..."
+          Write-Host "Syncing build files and assets to $target..."
 
           if (-not (Test-Path -Path $target)) {
             New-Item -ItemType Directory -Path $target -Force | Out-Null
           }
 
+          # Kecualikan git, github, dan node_modules agar tidak terjadi lock
           $excludeDirs = @('.git', '.github', 'node_modules')
           $excludeFiles = @('.env')
 
-          # Robocopy source files
+          # Salin file source dan folder build .next
           & robocopy . $target /E /XD $excludeDirs /XF $excludeFiles /NP /R:2 /W:2
           if ($LASTEXITCODE -ge 8) {
             throw "Robocopy failed with exit code $LASTEXITCODE"
           }
           $global:LASTEXITCODE = 0
 
-          # Copy node_modules
-          & robocopy node_modules "$target\node_modules" /E /NP /R:2 /W:2
-          if ($LASTEXITCODE -ge 8) {
-            throw "Robocopy node_modules failed with exit code $LASTEXITCODE"
-          }
-          $global:LASTEXITCODE = 0
-
           Write-Host "Files successfully synced to $target."
+
+      - name: Update Prisma Client in Target
+        run: |
+          $target = "C:\Assists\source\adminassist"
+          Set-Location -Path $target
+          Write-Host "Updating Prisma client in target..."
+          npx prisma generate
 
       - name: Restart Application Process
         run: |
@@ -95,7 +106,7 @@ jobs:
           Set-Location -Path $target
 
           if (Get-Command pm2 -ErrorAction SilentlyContinue) {
-            Write-Host "PM2 detected. Restarting application..."
+            Write-Host "PM2 detected. Starting application..."
             $pm2Status = pm2 describe adminassist 2>&1
             if ($LASTEXITCODE -eq 0) {
               pm2 restart adminassist --update-env
@@ -105,7 +116,7 @@ jobs:
             }
             pm2 save
           } else {
-            Write-Host "NOTICE: PM2 not found. If running manually via CMD, please restart the CMD window."
+            Write-Host "NOTICE: PM2 not found. If running manually, start with 'npm start'."
           }
 
           Write-Host "Deployment completed successfully!"
