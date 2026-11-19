@@ -20,16 +20,38 @@ import {
   Bell,
   Clock,
   Cloud,
+  ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-export function Sidebar() {
+interface SidebarProps {
+  branding?: {
+    appName: string;
+    logoLightUrl: string;
+    logoDarkUrl: string;
+    hasCustomLight?: boolean;
+    hasCustomDark?: boolean;
+  };
+}
+
+export function Sidebar({ branding }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
   const role = session?.user?.role;
+  const appName = branding?.appName || "ASSIST";
+
+  const horizontalLightLogo = branding?.hasCustomLight
+    ? branding.logoLightUrl
+    : "/images/branding/logo-horizontal-light.png";
+  const horizontalDarkLogo = branding?.hasCustomDark
+    ? branding.logoDarkUrl
+    : "/images/branding/logo-horizontal-dark.png";
+
+  const squareLightLogo = "/images/branding/logo-stacked-light.png";
+  const squareDarkLogo = "/images/branding/logo-stacked-dark.png";
 
   const menuItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["USER", "PIC", "PROJECT_MANAGER", "ADMIN", "ADMIN_TICKET"] },
@@ -45,6 +67,7 @@ export function Sidebar() {
 
   const settingsItems = [
     { href: "/admin/settings", label: "Overview", icon: Settings, roles: ["ADMIN"], exact: true },
+    { href: "/admin/settings/branding", label: "Branding", icon: ImageIcon, roles: ["ADMIN"], exact: true },
     { href: "/admin/settings/azure", label: "Azure 365", icon: Cloud, roles: ["ADMIN"], exact: true },
     { href: "/admin/settings/notifications", label: "Notifications", icon: Bell, roles: ["ADMIN"], exact: false },
   ];
@@ -72,12 +95,61 @@ export function Sidebar() {
         collapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Header / Collapse Toggle */}
-      <div className={cn("flex items-center h-14 px-4 border-b", collapsed ? "justify-center" : "justify-end")}>
-        <Button variant="ghost" size="icon" onClick={() => setCollapsed(!collapsed)}>
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
-      </div>
+      {/* Header / Brand Logo & Collapse Toggle */}
+      {collapsed ? (
+        <div className="flex flex-col items-center justify-center min-h-[72px] py-2 border-b gap-1.5 px-1 bg-background/50">
+          <Link href="/" title={appName} className="flex items-center justify-center hover:opacity-90 transition-opacity">
+            <img
+              src={squareLightLogo}
+              alt={appName}
+              className="w-9 h-9 object-contain dark:hidden"
+            />
+            <img
+              src={squareDarkLogo}
+              alt={appName}
+              className="w-9 h-9 object-contain hidden dark:block"
+            />
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+            onClick={() => setCollapsed(false)}
+            title="Perluas Menu"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between min-h-[64px] px-3.5 py-2 border-b bg-background/50">
+          <Link
+            href="/"
+            className="flex items-center overflow-hidden py-1 hover:opacity-90 transition-opacity"
+            title={`${appName} - Halaman Utama`}
+          >
+            {/* Logo horizontal yang lebih besar agar tulisan di bawahnya terbaca jelas */}
+            <img
+              src={horizontalLightLogo}
+              alt={appName}
+              className="h-11 max-h-12 w-auto object-contain dark:hidden"
+            />
+            <img
+              src={horizontalDarkLogo}
+              alt={appName}
+              className="h-11 max-h-12 w-auto object-contain hidden dark:block"
+            />
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 shrink-0"
+            onClick={() => setCollapsed(true)}
+            title="Perkecil Menu"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Navigation Links */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
