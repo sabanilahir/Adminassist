@@ -66,10 +66,11 @@ jobs:
           Write-Host "Stopping old application process to release file locks..."
 
           # 1. Coba hentikan via PM2 jika ada
-          $pm2Bin = (Get-Command pm2 -ErrorAction SilentlyContinue)?.Source
+          $pm2Cmd = Get-Command pm2 -ErrorAction SilentlyContinue
+          $pm2Bin = if ($pm2Cmd) { $pm2Cmd.Source } else { $null }
           if (-not $pm2Bin) {
             $checkPaths = @(
-              "$env:APPDATA\npm\pm2.cmd",
+              (Join-Path $env:APPDATA "npm\pm2.cmd"),
               "C:\Program Files\nodejs\pm2.cmd",
               "C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd"
             )
@@ -123,10 +124,11 @@ jobs:
           Write-Host "Memulai proses auto-start aplikasi di $target..."
 
           # 1. Cari binary PM2 di PATH maupun lokasi instalasi global npm Windows
-          $pm2Bin = (Get-Command pm2 -ErrorAction SilentlyContinue)?.Source
+          $pm2Cmd = Get-Command pm2 -ErrorAction SilentlyContinue
+          $pm2Bin = if ($pm2Cmd) { $pm2Cmd.Source } else { $null }
           if (-not $pm2Bin) {
             $checkPaths = @(
-              "$env:APPDATA\npm\pm2.cmd",
+              (Join-Path $env:APPDATA "npm\pm2.cmd"),
               "C:\Program Files\nodejs\pm2.cmd",
               "C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd"
             )
