@@ -6,8 +6,14 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, Loader2, AlertCircle } from "lucide-react";
+import { Mail, Lock, Loader2, AlertCircle, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface LoginFormProps {
   branding?: {
@@ -18,6 +24,10 @@ interface LoginFormProps {
     logoDarkUrl: string;
     hasCustomLight: boolean;
     hasCustomDark: boolean;
+    helpTitle?: string | null;
+    helpDescription?: string | null;
+    helpContactEmail?: string | null;
+    helpContactPhone?: string | null;
   };
 }
 
@@ -25,6 +35,7 @@ export function LoginForm({ branding }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [msLoading, setMsLoading] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -112,6 +123,14 @@ export function LoginForm({ branding }: LoginFormProps) {
     : isStacked
     ? "/images/branding/logo-stacked-dark.png"
     : branding?.logoDarkUrl || "/images/branding/logo-horizontal-dark.png";
+
+  const helpTitle = branding?.helpTitle || "Access Help & Credential Reset";
+  const helpDescription =
+    branding?.helpDescription ||
+    "In accordance with ISO/IEC 27001 document governance policy, account credentials integrate with corporate Active Directory / LDAP. Password resets are handled by the IT Service Desk.";
+  const helpContactEmail =
+    branding?.helpContactEmail || "servicedesk@company.internal";
+  const helpContactPhone = branding?.helpContactPhone || "ext. 4400 / 4401";
 
   return (
     <div className="w-full max-w-md">
@@ -235,6 +254,70 @@ export function LoginForm({ branding }: LoginFormProps) {
             )}
           </Button>
         </form>
+
+        {/* Tautan Bantuan Login (Need help signing in?) */}
+        <div className="mt-5 text-center">
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="text-xs text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors font-medium hover:underline"
+          >
+            Need help signing in?
+          </button>
+        </div>
+
+        {/* Modal Dialog Bantuan Sesuai Mockup */}
+        <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+          <DialogContent className="max-w-md p-6 bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xl">
+            <div className="flex flex-col items-start w-full">
+              {/* Shield Icon Box */}
+              <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-100 dark:border-sky-900/60 flex items-center justify-center text-sky-500 mb-4">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+
+              {/* Title & Description */}
+              <DialogHeader className="text-left space-y-1.5 p-0 w-full">
+                <DialogTitle className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                  {helpTitle}
+                </DialogTitle>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal">
+                  {helpDescription}
+                </p>
+              </DialogHeader>
+
+              {/* Key-Value Contact Box */}
+              <div className="w-full mt-4 p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800/80 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">
+                    IT Service Desk:
+                  </span>
+                  <span className="font-mono text-slate-800 dark:text-slate-200 select-all font-medium text-[11px]">
+                    {helpContactEmail}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">
+                    Emergency Hotline:
+                  </span>
+                  <span className="font-mono text-slate-800 dark:text-slate-200 select-all font-medium text-[11px]">
+                    {helpContactPhone}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <div className="w-full mt-6 flex justify-end">
+                <Button
+                  type="button"
+                  onClick={() => setHelpOpen(false)}
+                  className="bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 font-medium text-xs h-9 px-4 rounded-lg shadow-none"
+                >
+                  Understood & Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Demo Credentials di Non-Production Mode */}
         {process.env.NODE_ENV !== "production" && (

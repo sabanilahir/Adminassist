@@ -43,6 +43,11 @@ export async function POST(request: Request) {
     const appDescription = formData.get("appDescription") as string;
     const loginLayout = (formData.get("loginLayout") as string) || "horizontal";
 
+    const helpTitle = formData.get("helpTitle") as string | null;
+    const helpDescription = formData.get("helpDescription") as string | null;
+    const helpContactEmail = formData.get("helpContactEmail") as string | null;
+    const helpContactPhone = formData.get("helpContactPhone") as string | null;
+
     const lightFile = formData.get("logoLight") as File | null;
     const darkFile = formData.get("logoDark") as File | null;
 
@@ -92,6 +97,10 @@ export async function POST(request: Request) {
         appName,
         appDescription,
         loginLayout,
+        helpTitle: helpTitle || DEFAULT_BRANDING.helpTitle,
+        helpDescription: helpDescription || DEFAULT_BRANDING.helpDescription,
+        helpContactEmail: helpContactEmail || DEFAULT_BRANDING.helpContactEmail,
+        helpContactPhone: helpContactPhone || DEFAULT_BRANDING.helpContactPhone,
         logoLightUrl: newLogoLightUrl || null,
         logoDarkUrl: newLogoDarkUrl || null,
       },
@@ -99,6 +108,10 @@ export async function POST(request: Request) {
         appName,
         appDescription,
         loginLayout,
+        ...(helpTitle !== null ? { helpTitle } : {}),
+        ...(helpDescription !== null ? { helpDescription } : {}),
+        ...(helpContactEmail !== null ? { helpContactEmail } : {}),
+        ...(helpContactPhone !== null ? { helpContactPhone } : {}),
         ...(newLogoLightUrl !== undefined ? { logoLightUrl: newLogoLightUrl } : {}),
         ...(newLogoDarkUrl !== undefined ? { logoDarkUrl: newLogoDarkUrl } : {}),
       },
@@ -118,6 +131,10 @@ export async function POST(request: Request) {
         loginLayout: updated.loginLayout,
         hasCustomLight: Boolean(updated.logoLightUrl),
         hasCustomDark: Boolean(updated.logoDarkUrl),
+        helpTitle: updated.helpTitle || DEFAULT_BRANDING.helpTitle,
+        helpDescription: updated.helpDescription || DEFAULT_BRANDING.helpDescription,
+        helpContactEmail: updated.helpContactEmail || DEFAULT_BRANDING.helpContactEmail,
+        helpContactPhone: updated.helpContactPhone || DEFAULT_BRANDING.helpContactPhone,
       },
     });
   } catch (error: any) {

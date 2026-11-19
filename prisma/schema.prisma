@@ -199,14 +199,18 @@ model NotificationTemplate {
 }
 
 model AppSetting {
-  id             String   @id @default("default")
-  appName        String   @default("ASSIST")
-  appDescription String?  @default("Astragraphia Solution Support System Ticketing")
-  logoLightUrl   String?
-  logoDarkUrl    String?
-  loginLayout    String   @default("horizontal") // "horizontal" or "stacked"
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id               String   @id @default("default")
+  appName          String   @default("ASSIST")
+  appDescription   String?  @default("Astragraphia Solution Support System Ticketing")
+  logoLightUrl     String?
+  logoDarkUrl      String?
+  loginLayout      String   @default("horizontal") // "horizontal" or "stacked"
+  helpTitle        String?  @default("Access Help & Credential Reset")
+  helpDescription  String?  @db.Text
+  helpContactEmail String?  @default("servicedesk@company.internal")
+  helpContactPhone String?  @default("ext. 4400 / 4401")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 enum Role {

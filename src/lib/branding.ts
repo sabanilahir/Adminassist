@@ -12,6 +12,12 @@ export const DEFAULT_BRANDING = {
   // Logo compact (icon + assist)
   logoCompactLight: "/images/branding/logo-compact-light.png",
   logoCompactDark: "/images/branding/logo-compact-dark.png",
+  // Konfigurasi Bantuan Login (Need help signing in?)
+  helpTitle: "Access Help & Credential Reset",
+  helpDescription:
+    "In accordance with ISO/IEC 27001 document governance policy, account credentials integrate with corporate Active Directory / LDAP. Password resets are handled by the IT Service Desk.",
+  helpContactEmail: "servicedesk@company.internal",
+  helpContactPhone: "ext. 4400 / 4401",
 };
 
 export async function getAppBranding() {
@@ -28,6 +34,10 @@ export async function getAppBranding() {
       logoDarkUrl: setting?.logoDarkUrl || DEFAULT_BRANDING.logoHorizontalDark,
       hasCustomLight: Boolean(setting?.logoLightUrl),
       hasCustomDark: Boolean(setting?.logoDarkUrl),
+      helpTitle: setting?.helpTitle || DEFAULT_BRANDING.helpTitle,
+      helpDescription: setting?.helpDescription || DEFAULT_BRANDING.helpDescription,
+      helpContactEmail: setting?.helpContactEmail || DEFAULT_BRANDING.helpContactEmail,
+      helpContactPhone: setting?.helpContactPhone || DEFAULT_BRANDING.helpContactPhone,
     };
   } catch (error) {
     console.error("Gagal mengambil AppBranding:", error);
@@ -39,6 +49,10 @@ export async function getAppBranding() {
       logoDarkUrl: DEFAULT_BRANDING.logoHorizontalDark,
       hasCustomLight: false,
       hasCustomDark: false,
+      helpTitle: DEFAULT_BRANDING.helpTitle,
+      helpDescription: DEFAULT_BRANDING.helpDescription,
+      helpContactEmail: DEFAULT_BRANDING.helpContactEmail,
+      helpContactPhone: DEFAULT_BRANDING.helpContactPhone,
     };
   }
 }

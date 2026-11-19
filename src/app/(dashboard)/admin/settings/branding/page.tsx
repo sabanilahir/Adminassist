@@ -24,6 +24,7 @@ import {
   AlertCircle,
   Eye,
   ImageIcon,
+  HelpCircle,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -35,6 +36,10 @@ interface BrandingState {
   logoDarkUrl: string;
   hasCustomLight: boolean;
   hasCustomDark: boolean;
+  helpTitle: string;
+  helpDescription: string;
+  helpContactEmail: string;
+  helpContactPhone: string;
 }
 
 export default function BrandingSettingsPage() {
@@ -54,6 +59,11 @@ export default function BrandingSettingsPage() {
     logoDarkUrl: "/images/branding/logo-horizontal-dark.png",
     hasCustomLight: false,
     hasCustomDark: false,
+    helpTitle: "Access Help & Credential Reset",
+    helpDescription:
+      "In accordance with ISO/IEC 27001 document governance policy, account credentials integrate with corporate Active Directory / LDAP. Password resets are handled by the IT Service Desk.",
+    helpContactEmail: "servicedesk@company.internal",
+    helpContactPhone: "ext. 4400 / 4401",
   });
 
   // Local file previews for unsaved changes
@@ -91,6 +101,13 @@ export default function BrandingSettingsPage() {
             data.logoDarkUrl || "/images/branding/logo-horizontal-dark.png",
           hasCustomLight: Boolean(data.hasCustomLight),
           hasCustomDark: Boolean(data.hasCustomDark),
+          helpTitle: data.helpTitle || "Access Help & Credential Reset",
+          helpDescription:
+            data.helpDescription ||
+            "In accordance with ISO/IEC 27001 document governance policy, account credentials integrate with corporate Active Directory / LDAP. Password resets are handled by the IT Service Desk.",
+          helpContactEmail:
+            data.helpContactEmail || "servicedesk@company.internal",
+          helpContactPhone: data.helpContactPhone || "ext. 4400 / 4401",
         });
       }
     } catch (error) {
@@ -180,6 +197,10 @@ export default function BrandingSettingsPage() {
       formData.append("appName", branding.appName);
       formData.append("appDescription", branding.appDescription);
       formData.append("loginLayout", branding.loginLayout);
+      formData.append("helpTitle", branding.helpTitle);
+      formData.append("helpDescription", branding.helpDescription);
+      formData.append("helpContactEmail", branding.helpContactEmail);
+      formData.append("helpContactPhone", branding.helpContactPhone);
 
       if (lightFile) {
         formData.append("logoLight", lightFile);
@@ -505,6 +526,95 @@ export default function BrandingSettingsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Konfigurasi Informasi Modal Bantuan Login */}
+        <Card className="border-slate-200/80 shadow-none">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <HelpCircle className="h-4 w-4 text-slate-700" />
+              <CardTitle className="text-sm font-semibold text-slate-900">
+                Informasi Modal Bantuan Login (Need help signing in?)
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs text-slate-500">
+              Ubah teks panduan dan informasi kontak yang tampil pada modal bantuan di bawah tombol login.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="helpTitle" className="text-xs font-medium text-slate-700">
+                Judul Modal Bantuan
+              </Label>
+              <Input
+                id="helpTitle"
+                value={branding.helpTitle}
+                onChange={(e) =>
+                  setBranding((prev) => ({ ...prev, helpTitle: e.target.value }))
+                }
+                className="h-9 text-xs"
+                placeholder="Access Help & Credential Reset"
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="helpDescription" className="text-xs font-medium text-slate-700">
+                Keterangan Kebijakan / Instruksi
+              </Label>
+              <textarea
+                id="helpDescription"
+                value={branding.helpDescription}
+                onChange={(e) =>
+                  setBranding((prev) => ({ ...prev, helpDescription: e.target.value }))
+                }
+                rows={3}
+                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 leading-relaxed"
+                placeholder="In accordance with ISO/IEC 27001 document governance policy..."
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="helpContactEmail" className="text-xs font-medium text-slate-700">
+                  Kontak 1: IT Service Desk (Email)
+                </Label>
+                <Input
+                  id="helpContactEmail"
+                  value={branding.helpContactEmail}
+                  onChange={(e) =>
+                    setBranding((prev) => ({
+                      ...prev,
+                      helpContactEmail: e.target.value,
+                    }))
+                  }
+                  className="h-9 text-xs font-mono"
+                  placeholder="servicedesk@company.internal"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="helpContactPhone" className="text-xs font-medium text-slate-700">
+                  Kontak 2: Emergency Hotline (Telepon / Ekstensi)
+                </Label>
+                <Input
+                  id="helpContactPhone"
+                  value={branding.helpContactPhone}
+                  onChange={(e) =>
+                    setBranding((prev) => ({
+                      ...prev,
+                      helpContactPhone: e.target.value,
+                    }))
+                  }
+                  className="h-9 text-xs font-mono"
+                  placeholder="ext. 4400 / 4401"
+                  required
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Live Preview Simulator */}
         <Card className="border-slate-200/80 shadow-none">
