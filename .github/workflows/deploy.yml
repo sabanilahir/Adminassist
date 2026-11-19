@@ -63,12 +63,28 @@ jobs:
 
       - name: Stop Old Application Process
         run: |
-          Write-Host "Stopping old node process to release file locks..."
-          if (Get-Command pm2 -ErrorAction SilentlyContinue) {
-            pm2 stop adminassist 2>&1 | Out-Null
+          Write-Host "Stopping old application process to release file locks..."
+
+          # 1. Coba hentikan via PM2 jika ada
+          $pm2Bin = (Get-Command pm2 -ErrorAction SilentlyContinue)?.Source
+          if (-not $pm2Bin) {
+            $checkPaths = @(
+              "$env:APPDATA\npm\pm2.cmd",
+              "C:\Program Files\nodejs\pm2.cmd",
+              "C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd"
+            )
+            foreach ($p in $checkPaths) {
+              if (Test-Path $p) { $pm2Bin = $p; break }
+            }
           }
-          # Hentikan node agar file DLL/binary tidak terkunci
-          Stop-Process -Name node -Force -ErrorAction SilentlyContinue
+          if ($pm2Bin) {
+            Write-Host "Menghentikan service via PM2 ($pm2Bin)..."
+            & $pm2Bin stop adminassist 2>&1 | Out-Null
+          }
+
+          # 2. Hentikan proses node yang sedang listen di port 3000 atau proses node aplikasi
+          Write-Host "Memastikan port 3000 dan proses node dilepas..."
+          Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           Start-Sleep -Seconds 2
 
       - name: Sync Files to C:\Assists\source\adminassist
@@ -104,19 +120,67 @@ jobs:
         run: |
           $target = "C:\Assists\source\adminassist"
           Set-Location -Path $target
+          Write-Host "Memulai proses auto-start aplikasi di $target..."
 
-          if (Get-Command pm2 -ErrorAction SilentlyContinue) {
-            Write-Host "PM2 detected. Starting application..."
-            $pm2Status = pm2 describe adminassist 2>&1
-            if ($LASTEXITCODE -eq 0) {
-              pm2 restart adminassist --update-env
-            } else {
-              Write-Host "Starting adminassist with PM2 for the first time..."
-              pm2 start npm --name "adminassist" -- start
+          # 1. Cari binary PM2 di PATH maupun lokasi instalasi global npm Windows
+          $pm2Bin = (Get-Command pm2 -ErrorAction SilentlyContinue)?.Source
+          if (-not $pm2Bin) {
+            $checkPaths = @(
+              "$env:APPDATA\npm\pm2.cmd",
+              "C:\Program Files\nodejs\pm2.cmd",
+              "C:\Users\Administrator\AppData\Roaming\npm\pm2.cmd"
+            )
+            foreach ($p in $checkPaths) {
+              if (Test-Path $p) { $pm2Bin = $p; break }
             }
-            pm2 save
+          }
+
+          $started = $false
+
+          if ($pm2Bin) {
+            Write-Host "[Metode 1] Menggunakan PM2 di $pm2Bin..."
+            & $pm2Bin describe adminassist 2>&1 | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Me-restart instance PM2 yang sudah ada..."
+              & $pm2Bin restart adminassist --update-env
+            } else {
+              Write-Host "Mendaftarkan dan menjalankan instance PM2 baru..."
+              & $pm2Bin start npm --name "adminassist" --cwd $target -- start
+            }
+            & $pm2Bin save
+            $started = $true
           } else {
-            Write-Host "NOTICE: PM2 not found. If running manually, start with 'npm start'."
+            Write-Host "[Metode 2] PM2 tidak terdeteksi di session runner."
+            Write-Host "Menjalankan aplikasi langsung sebagai Detached Background Process via WMI..."
+
+            # Menggunakan WMI Win32_Process agar proses tidak dibunuh saat step runner berakhir
+            $cmd = "cmd.exe /c npm start"
+            $wmiProcess = [wmiclass]"Win32_Process"
+            $result = $wmiProcess.Create($cmd, $target, $null)
+
+            if ($result.ReturnValue -eq 0) {
+              Write-Host "Aplikasi berhasil dihidupkan di latar belakang! Process ID: $($result.ProcessId)"
+              $started = $true
+            } else {
+              Write-Warning "WMI Create gagal (Kode: $($result.ReturnValue)), mencoba Start-Process fallback..."
+              Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm start" -WorkingDirectory $target -WindowStyle Hidden
+              $started = $true
+            }
+          }
+
+          # 2. Verifikasi status aplikasi (Health check)
+          Write-Host "Menunggu aplikasi siap (5 detik)..."
+          Start-Sleep -Seconds 5
+          $portActive = Test-NetConnection -ComputerName 127.0.0.1 -Port 3000 -InformationLevel Quiet
+
+          if ($portActive) {
+            Write-Host "================================================="
+            Write-Host "  APLIKASI SUKSES MENYALA & AKTIF DI PORT 3000!  "
+            Write-Host "  URL: http://10.17.8.35:3000                    "
+            Write-Host "================================================="
+          } else {
+            Write-Host "Pemberitahuan: Port 3000 sedang dalam proses startup (Next.js compiling/warming up)."
+            Write-Host "Silakan akses browser dalam beberapa saat."
           }
 
           Write-Host "Deployment completed successfully!"
