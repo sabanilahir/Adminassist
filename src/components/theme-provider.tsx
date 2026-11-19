@@ -21,6 +21,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     
     if (stored) {
       setTheme(stored);
+    } else if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      setTheme("dark");
     }
     setMounted(true);
   }, []);

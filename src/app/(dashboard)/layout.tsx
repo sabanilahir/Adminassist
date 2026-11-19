@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Header } from "@/components/header";
+import { getAppBranding } from "@/lib/branding";
 
 export default async function DashboardLayout({
   children,
@@ -14,11 +15,13 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  const branding = await getAppBranding();
+
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+      <Sidebar branding={branding} />
       <main className="flex-1 overflow-y-auto bg-background">
-        <Header />
+        <Header user={session.user} />
         <div className="container mx-auto p-6 max-w-7xl">
           {children}
         </div>

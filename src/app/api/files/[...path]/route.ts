@@ -7,16 +7,23 @@ export async function GET(
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const { path: pathSegments } = await params;
     const fileKey = pathSegments.join("/");
 
     if (!fileKey) {
       return NextResponse.json({ error: "File key is required" }, { status: 400 });
+    }
+
+    // Izinkan akses publik untuk aset logo/branding sistem
+    const isPublicAsset =
+      fileKey.startsWith("branding-") ||
+      fileKey.startsWith("logo-") ||
+      fileKey.includes("branding/") ||
+      fileKey.includes("logo/");
+
+    const session = await auth();
+    if (!session && !isPublicAsset) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { buffer, mimeType } = await storage.getFile(fileKey);
