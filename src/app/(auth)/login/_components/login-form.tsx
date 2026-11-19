@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,21 +118,25 @@ export function LoginForm({ branding }: LoginFormProps) {
       <div className="bg-card rounded-lg shadow-xl border border-border p-8">
         {/* Header Kartu Login: Hanya gambar logo sesuai arahan user */}
         <div className="text-center mb-8">
-          <div className="flex justify-center items-center mb-4">
+          <div className="flex justify-center items-center mb-5">
             <img
               src={lightLogo}
               alt={branding?.appName || "ASSIST"}
               className={cn(
-                "w-auto max-w-[280px] object-contain dark:hidden transition-all",
-                isStacked ? "h-24 max-h-24" : "h-14 md:h-16 max-h-16"
+                "w-auto object-contain dark:hidden transition-all",
+                isStacked
+                  ? "h-28 md:h-36 max-h-36 max-w-[240px]"
+                  : "h-20 md:h-24 max-h-28 max-w-[340px] md:max-w-[380px]"
               )}
             />
             <img
               src={darkLogo}
               alt={branding?.appName || "ASSIST"}
               className={cn(
-                "w-auto max-w-[280px] object-contain hidden dark:block transition-all",
-                isStacked ? "h-24 max-h-24" : "h-14 md:h-16 max-h-16"
+                "w-auto object-contain hidden dark:block transition-all",
+                isStacked
+                  ? "h-28 md:h-36 max-h-36 max-w-[240px]"
+                  : "h-20 md:h-24 max-h-28 max-w-[340px] md:max-w-[380px]"
               )}
             />
           </div>
@@ -232,18 +235,6 @@ export function LoginForm({ branding }: LoginFormProps) {
             )}
           </Button>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/register"
-              className="text-primary hover:underline font-medium"
-            >
-              Create one
-            </Link>
-          </p>
-        </div>
 
         {/* Demo Credentials di Non-Production Mode */}
         {process.env.NODE_ENV !== "production" && (

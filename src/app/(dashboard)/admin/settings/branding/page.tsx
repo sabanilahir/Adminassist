@@ -556,10 +556,10 @@ export default function BrandingSettingsPage() {
                           : activeLightUrl
                       }
                       alt="Logo Login"
-                      className={`w-auto max-w-[240px] object-contain ${
+                      className={`w-auto object-contain transition-all ${
                         branding.loginLayout === "stacked" && !lightPreview && !branding.hasCustomLight
-                          ? "h-20"
-                          : "h-14"
+                          ? "h-28 max-w-[200px]"
+                          : "h-20 max-w-[320px]"
                       }`}
                     />
                   </div>
